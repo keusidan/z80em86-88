@@ -6,7 +6,7 @@
 BDOS    equ     5
 PRSTR   equ     9
 
-        org     100h
+; no ORG: ZML links the code segment (CSEG) at 0100h
 
 start:
 ; 1. EX AF,AF' (alternate AF)
@@ -218,7 +218,41 @@ t17:    ld      de,t_ddcb
 t22:    ld      de,t_cpir0
         call    result
 
+; 23. IM 0/1/2 run (no interrupt source is enabled, nothing happens)
+        im      2
+        im      1
+        im      0
+        xor     a               ; Z=1 when we get here
+        ld      de,t_im
+        call    result
+
+; 24. EI / DI set IFF2, read as P/V by LD A,I
+        ei
+        ld      a,i
+        jp      po,fail24       ; P/V must be 1 after EI
+        di
+        ld      a,i
+        jp      pe,fail24       ; P/V must be 0 after DI
+        xor     a
+        jr      t24
+fail24: or      1
+t24:    ld      de,t_eidi
+        call    result
+
+; 25. RETN / RETI return like RET
+        ld      a,1
+        call    subrn           ; A = 2
+        call    subri           ; A = 3
+        cp      3
+        ld      de,t_reti
+        call    result
+
         ret                     ; back to CCP
+
+subrn:  inc     a
+        retn
+subri:  inc     a
+        reti
 
 ; RESULT: print name at DE, then OK (Z=1) or NG (Z=0)
 result:
@@ -256,6 +290,9 @@ t_ednop: db     'undoc ED 00 NOP: $'
 t_ddign: db     'DD ignored     : $'
 t_sllhl: db     'undoc SLL (HL) : $'
 t_cpir0: db     'CPIR BC=0      : $'
+t_im:   db      'IM 0/1/2       : $'
+t_eidi: db      'EI/DI -> IFF2  : $'
+t_reti: db      'RETN / RETI    : $'
 
 src:    db      'ABCDE'
 buf:    ds      8

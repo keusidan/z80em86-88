@@ -10,6 +10,9 @@
 ;===============================================================================
 ; ChangeLog (most recent entries are at top)
 ;===============================================================================
+; z80em86-88 - 5 October 2026
+; - JR cc / DJNZ count the extra T-states when taken.
+;
 ; v1.0.0 - 10 February 2009, S.J.Kay
 ; - Convert sources from TASM to NASM format and prepare for GPL release.
 ; - Changed all uses of 'Z80' map segment to 'es:Z80'
@@ -218,7 +221,10 @@ Z_JRC:
         lahf
         inc     bp
         XinstB
-jrc:    jmp     Z_JR
+jrc: lahf
+        sub     WORD [tleft],5          ;taken: 12T instead of 7T
+        sahf
+        jmp     Z_JR
 
 ;***********************************************************
 ;*      JR      NC,RR            Flags: S Z - H - P/V N C  *
@@ -229,7 +235,10 @@ Z_JRNC:
         lahf
         inc     bp
         XinstB
-jrnc:   jmp     Z_JR
+jrnc: lahf
+        sub     WORD [tleft],5          ;taken: 12T instead of 7T
+        sahf
+        jmp     Z_JR
 
 ;***********************************************************
 ;*      JR      Z,RR             Flags: S Z - H - P/V N C  *
@@ -240,7 +249,10 @@ Z_JRZ:
         lahf
         inc     bp
         XinstB
-jrz:    jmp     Z_JR
+jrz: lahf
+        sub     WORD [tleft],5          ;taken: 12T instead of 7T
+        sahf
+        jmp     Z_JR
 
 ;***********************************************************
 ;*      JR      NZ,RR            Flags: S Z - H - P/V N C  *
@@ -251,7 +263,10 @@ Z_JRNZ:
         lahf
         inc     bp
         XinstB
-jrnz:   jmp     Z_JR
+jrnz: lahf
+        sub     WORD [tleft],5          ;taken: 12T instead of 7T
+        sahf
+        jmp     Z_JR
 
 ;***********************************************************
 ;*      DJNZ    RR               Flags: S Z - H - P/V N C  *
@@ -263,6 +278,7 @@ Z_DJNZ:
         jnz     djnz
         inc     bp
         XinstB
-djnz:   jmp     JRx
+djnz:   sub     WORD [tleft],5          ;taken: 13T (AH = Z80 F here)
+        jmp     JRx
 
         end

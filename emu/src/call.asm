@@ -10,6 +10,10 @@
 ;===============================================================================
 ; ChangeLog (most recent entries are at top)
 ;===============================================================================
+; z80em86-88 - 5 October 2026
+; - RETN/RETI return and copy IFF2 to IFF1 (they stopped the emulator).
+; - CALL cc / RET cc count the extra T-states when taken.
+;
 ; v1.0.0 - 10 February 2009, S.J.Kay
 ; - Convert sources from TASM to NASM format and prepare for GPL release.
 ; - Changed 'lea' instructions to 'mov'.
@@ -60,7 +64,9 @@ GLOBAL	Z_RST4,   Z_RST5,   Z_RST6,  Z_RST7
 EXTERN  Nocde0
 
 ; declared in INSTHAND.ASM
-EXTERN  Z80SP
+EXTERN  Z80SP, IFF
+; declared in TIMER.ASM
+EXTERN  IFF1
 
 %include "macros.asm"
 
@@ -91,7 +97,10 @@ Z_CALLNZ:
         inc     bp
         inc     bp
         XinstB
-callnz: jmp     Z_CALL
+callnz: lahf
+        sub     WORD [tleft],7          ;taken: 17T instead of 10T
+        sahf
+        jmp     Z_CALL
 
 ;***********************************************************
 ;*      CALL    Z,NNNN           Flags: S Z - H - P/V N C  *
@@ -103,7 +112,10 @@ Z_CALLZ:
         inc     bp
         inc     bp
         XinstB
-callz:  jmp     Z_CALL
+callz: lahf
+        sub     WORD [tleft],7          ;taken: 17T instead of 10T
+        sahf
+        jmp     Z_CALL
 
 ;***********************************************************
 ;*      CALL    NC,NNNN          Flags: S Z - H - P/V N C  *
@@ -115,7 +127,10 @@ Z_CALLNC:
         inc     bp
         inc     bp
         XinstB
-callnc: jmp     Z_CALL
+callnc: lahf
+        sub     WORD [tleft],7          ;taken: 17T instead of 10T
+        sahf
+        jmp     Z_CALL
 
 ;***********************************************************
 ;*      CALL    C,NNNN           Flags: S Z - H - P/V N C  *
@@ -127,7 +142,10 @@ Z_CALLC:
         inc     bp
         inc     bp
         XinstB
-callc:  jmp     Z_CALL
+callc: lahf
+        sub     WORD [tleft],7          ;taken: 17T instead of 10T
+        sahf
+        jmp     Z_CALL
 
 ;***********************************************************
 ;*      CALL    PO,NNNN          Flags: S Z - H - P/V N C  *
@@ -139,7 +157,10 @@ Z_CALLPO:
         inc     bp
         inc     bp
         XinstB
-callpo: jmp     Z_CALL
+callpo: lahf
+        sub     WORD [tleft],7          ;taken: 17T instead of 10T
+        sahf
+        jmp     Z_CALL
 
 ;***********************************************************
 ;*      CALL    PE,NNNN          Flags: S Z - H - P/V N C  *
@@ -151,7 +172,10 @@ Z_CALLPE:
         inc     bp
         inc     bp
         XinstB
-callpe: jmp     Z_CALL
+callpe: lahf
+        sub     WORD [tleft],7          ;taken: 17T instead of 10T
+        sahf
+        jmp     Z_CALL
 
 ;***********************************************************
 ;*      CALL    P,NNNN           Flags: S Z - H - P/V N C  *
@@ -163,7 +187,10 @@ Z_CALLP:
         inc     bp
         inc     bp
         XinstB
-callp:  jmp     Z_CALL
+callp: lahf
+        sub     WORD [tleft],7          ;taken: 17T instead of 10T
+        sahf
+        jmp     Z_CALL
 
 ;***********************************************************
 ;*      CALL    M,NNNN           Flags: S Z - H - P/V N C  *
@@ -175,7 +202,10 @@ Z_CALLM:
         inc     bp
         inc     bp
         XinstB
-callm:  jmp     Z_CALL
+callm: lahf
+        sub     WORD [tleft],7          ;taken: 17T instead of 10T
+        sahf
+        jmp     Z_CALL
 
 ;***********************************************************
 ;*      RET                      Flags: S Z - H - P/V N C  *
@@ -197,7 +227,10 @@ Z_RET:
 Z_RETNZ:
         jnz     retnz
         XinstA
-retnz:  jmp     Z_RET
+retnz: lahf
+        sub     WORD [tleft],6          ;taken: 11T instead of 5T
+        sahf
+        jmp     Z_RET
 
 ;***********************************************************
 ;*      RET     Z                Flags: S Z - H - P/V N C  *
@@ -206,7 +239,10 @@ retnz:  jmp     Z_RET
 Z_RETZ:
         jz      retz
         XinstA
-retz:   jmp     Z_RET
+retz: lahf
+        sub     WORD [tleft],6          ;taken: 11T instead of 5T
+        sahf
+        jmp     Z_RET
 
 ;***********************************************************
 ;*      RET     NC               Flags: S Z - H - P/V N C  *
@@ -215,7 +251,10 @@ retz:   jmp     Z_RET
 Z_RETNC:
         jnc     retnc
         XinstA
-retnc:  jmp     Z_RET
+retnc: lahf
+        sub     WORD [tleft],6          ;taken: 11T instead of 5T
+        sahf
+        jmp     Z_RET
 
 ;***********************************************************
 ;*      RET     C                Flags: S Z - H - P/V N C  *
@@ -224,7 +263,10 @@ retnc:  jmp     Z_RET
 Z_RETC:
         jc      retc
         XinstA
-retc:   jmp     Z_RET
+retc: lahf
+        sub     WORD [tleft],6          ;taken: 11T instead of 5T
+        sahf
+        jmp     Z_RET
 
 ;***********************************************************
 ;*      RET     PO               Flags: S Z - H - P/V N C  *
@@ -233,7 +275,10 @@ retc:   jmp     Z_RET
 Z_RETPO:
         jpo     retpo
         XinstA
-retpo:  jmp     Z_RET
+retpo: lahf
+        sub     WORD [tleft],6          ;taken: 11T instead of 5T
+        sahf
+        jmp     Z_RET
 
 ;***********************************************************
 ;*      RET     PE               Flags: S Z - H - P/V N C  *
@@ -242,7 +287,10 @@ retpo:  jmp     Z_RET
 Z_RETPE:
         jpe     retpe
         XinstA
-retpe:  jmp     Z_RET
+retpe: lahf
+        sub     WORD [tleft],6          ;taken: 11T instead of 5T
+        sahf
+        jmp     Z_RET
 
 ;***********************************************************
 ;*      RET     P                Flags: S Z - H - P/V N C  *
@@ -251,7 +299,10 @@ retpe:  jmp     Z_RET
 Z_RETP:
         jns     retp
         XinstA
-retp:   jmp     Z_RET
+retp: lahf
+        sub     WORD [tleft],6          ;taken: 11T instead of 5T
+        sahf
+        jmp     Z_RET
 
 ;***********************************************************
 ;*      RET     M                Flags: S Z - H - P/V N C  *
@@ -260,15 +311,23 @@ retp:   jmp     Z_RET
 Z_RETM:
         js      retm
         XinstA
-retm:   jmp     Z_RET
+retm: lahf
+        sub     WORD [tleft],6          ;taken: 11T instead of 5T
+        sahf
+        jmp     Z_RET
 
 ;***********************************************************
 ;*      RETI                     Flags: S Z - H - P/V N C  *
 ;*                                      . . x . x  .  . .  *
 ;***********************************************************
 Z_RETI:
-        mov     si,reti_
-        jmp     NEAR Nocde0
+        lahf                            ;IFF1 = IFF2, then RET
+        push    ax
+        mov     al,[IFF]
+        mov     [IFF1],al
+        pop     ax
+        sahf
+        jmp     Z_RET
 reti_:  db      'RETI$'
 
 ;***********************************************************
@@ -276,8 +335,13 @@ reti_:  db      'RETI$'
 ;*                                      . . x . x  .  . .  *
 ;***********************************************************
 Z_RETN:
-        mov     si,retn_
-        jmp     NEAR Nocde0
+        lahf                            ;IFF1 = IFF2, then RET
+        push    ax
+        mov     al,[IFF]
+        mov     [IFF1],al
+        pop     ax
+        sahf
+        jmp     Z_RET
 retn_:  db      'RETN$'
 
 ;***********************************************************

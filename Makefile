@@ -36,6 +36,9 @@ zmac:
 z80em86:
 	scripts/get-tools.sh z80em86
 
+zex:
+	scripts/get-tools.sh zex
+
 # emu/src の z80em86 をビルドし、実行環境 z80em86/ の exe を置き換える
 emu:
 	$(MAKE) -C emu/src
@@ -45,7 +48,14 @@ emu:
 z80check:
 	scripts/cpm-run.sh scripts/z80check.sub
 
+# ZEXDOC (Z80 命令の網羅テスト) を CP/M 内でビルドして実行する。数十分かかる
+# ZML は ASEG を出力しないので、ASEG + ORG 100h を CSEG に置き換えてからアセンブルする
+zexdoc: | build
+	test -f zex/zexdoc.z80 || scripts/get-tools.sh zex
+	sed 's/^\taseg\r$$/\tcseg\r/; /^\torg\t100h\r$$/d' zex/zexdoc.z80 > build/zexdoc.z80
+	scripts/cpm-run.sh scripts/zexdoc.sub slow88.conf 10800 | tee build/zexdoc.log
+
 clean:
 	rm -rf build
 
-.PHONY: all run debug dos nasm edit zmac z80em86 emu z80check clean
+.PHONY: all run debug dos nasm edit zmac z80em86 zex emu z80check zexdoc clean

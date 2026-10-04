@@ -1,0 +1,5 @@
+device conout:=crt2
+dostocpm c:\build\zexdoc.z80 c: /f
+zmac zexdoc.z80
+zml zexdoc
+zexdoc

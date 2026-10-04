@@ -10,6 +10,10 @@
 ;===============================================================================
 ; ChangeLog (most recent entries are at top)
 ;===============================================================================
+; z80em86-88 - 5 October 2026
+; - Install the 600 Hz timer (TIMER.ASM) at start, restore it at exit,
+;   reset the timing and interrupt state with the Z80 registers.
+;
 ; v1.0.0 - 20 February 2009, S.J.Kay
 ; - Convert sources from TASM to NASM format and prepare for GPL release.
 ; - Removed one occurence of label NEAR from: 'lea dx,[NEAR criter]'
@@ -66,6 +70,7 @@ EXTERN  PrnStr, GetKey, EraScr, HdeCur
 ; declared in HARDWARE.ASM
 EXTERN  bnkini, bnkres
 EXTERN  newkbd, oldkbd
+EXTERN  tmrini, tmrres, tmrrst
 EXTERN  rdflop, rdhard
 EXTERN  HrdFle, Handle
 
@@ -204,6 +209,7 @@ seterr: mov     ah,025h                 ;set interrupt function
         xor     dl,dl                   ;turn of Ctrl-C action
         int     021h
         call    NEAR newkbd
+        call    NEAR tmrini             ;600 Hz timer for the Z80 speed
 
 ; Resize memory for Z80 Emulator program
         mov     ax,es                   ;get PSP address in ES
@@ -330,7 +336,8 @@ loaded: cmp     BYTE [es:Z80+0080h],0c3h ;Z80 jump in 1st byte of sector ?
 Z80abt: jmp     Z80ext                  ;exit the Z80 Emulator program
 
 ; Reset Z80 registers and execute Z80 code
-Z80exe: xor     ax,ax                   ;Z80 reg   A=0
+Z80exe: call    NEAR tmrrst             ;T-states, IFF1, IM, interrupts
+        xor     ax,ax                   ;Z80 reg   A=0
         mov     cx,ax                   ;Z80 reg  BC=0
         mov     dx,ax                   ;Z80 reg  DE=0
         mov     bx,ax                   ;Z80 reg  HL=0
@@ -374,6 +381,7 @@ Z80ext: cmp     BYTE [HrdFle],0ffh      ;Z80 hard disk file image opened ?
         mov     cx,001h                 ;read only file attribute
         int     021h                    ;change attribute
 NotHDD: call    NEAR oldkbd
+        call    NEAR tmrres             ;restore the PC timer
         mov     ah,033h                 ;get/set Ctrl-C flag function
         mov     al,001h                 ;set function
         mov     dl,[CtrlC]              ;restore original Ctrl-C flag

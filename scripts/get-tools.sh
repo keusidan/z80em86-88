@@ -4,10 +4,11 @@
 #        scripts/get-tools.sh edit             -> edit/  (FreeDOS 1.3 の EDIT)
 #        scripts/get-tools.sh zmac             -> zmac/  (Al Hawley の ZMAC, CP/M 用。中身は CRUNCH 圧縮のまま)
 #        scripts/get-tools.sh z80em86          -> z80em86/ (Z80 エミュレータ z80em86 + CP/M 3 一式)
+#        scripts/get-tools.sh zex              -> zex/  (Frank Cringle の ZEXDOC/ZEXALL ソース, GPL)
 # 展開後のファイル名は unzip -LL で小文字にそろえる
 set -eu
 
-tool=${1:?usage: $0 nasm|edit|zmac|z80em86 [version]}
+tool=${1:?usage: $0 nasm|edit|zmac|z80em86|zex [version]}
 
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
@@ -50,6 +51,12 @@ z80em86)
 	unzip -n -LL "$tmp/pkg.zip" -d .
 	chmod u+w z80em86/z80hdd.dsk
 	ls -l z80em86
+	;;
+zex)
+	fetch "https://mdfs.net/Software/Z80/Exerciser/YAZE.zip"
+	mkdir -p zex
+	unzip -o -LL "$tmp/pkg.zip" -d zex
+	ls -l zex
 	;;
 *)
 	echo "unknown tool: $tool" >&2

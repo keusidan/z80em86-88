@@ -12,6 +12,7 @@
 ;===============================================================================
 ; z80em86-88 - 5 October 2026
 ; - LDIR/LDDR/CPIR/CPDR: BC = 0 repeats 65536 times as on a real Z80
+; - LDIR/LDDR/CPIR/CPDR count 21T for each repeat (tblk in TIMER.ASM).
 ;   (REP with CX = 0 did nothing).
 ;
 ; v1.0.0 - 10 February 2009, S.J.Kay
@@ -58,6 +59,8 @@ GLOBAL	Z_LDI, Z_LDD, Z_LDIR, Z_LDDR
 EXTERN  Z80SP, Z80IX, Z80IY
 EXTERN  Z80AF, Z80BC, Z80DE, Z80HL
 EXTERN  FlagN, FlagNx
+; declared in TIMER.ASM
+EXTERN  tblk, tblkn
 
 %include "macros.asm"
 
@@ -148,6 +151,7 @@ ldi:    XinstB
 ;***********************************************************
 Z_LDIR:
         lahf
+        mov     [tblkn],cx              ;BC at the start (T-states)
         mov     si,bx                   ;source in HL
         mov     di,dx                   ;destination in DE
         push    ds
@@ -159,6 +163,7 @@ rep     movsb                           ;move memory
 ldir64e: pop     ds
         mov     bx,si
         mov     dx,di
+        call    tblk                    ;21T for each repeat
         and     ah,11101011b
         mov     BYTE [FlagN],0
         XinstB
@@ -191,6 +196,7 @@ ldd:    XinstB
 ;***********************************************************
 Z_LDDR:
         lahf
+        mov     [tblkn],cx              ;BC at the start (T-states)
         mov     si,bx                   ;source in HL
         mov     di,dx                   ;destination in DE
         push    ds
@@ -202,6 +208,7 @@ rep     movsb                           ;move memory
 lddr64e: pop     ds
         mov     bx,si
         mov     dx,di
+        call    tblk                    ;21T for each repeat
         and     ah,11101011b
         mov     BYTE [FlagN],0
         XinstB
@@ -235,6 +242,7 @@ cpi:    XinstB
 ;***********************************************************
 Z_CPIR:
         lahf
+        mov     [tblkn],cx              ;BC at the start (T-states)
         and     ah,00000001b            ;save the carry flag
         mov     [tempb1],ah
         mov     BYTE [FlagN],2
@@ -244,6 +252,7 @@ Z_CPIR:
 repne   scasb                           ;repeat until CX=0 or A=(HL)
 cpir64e: mov     bx,di                   ;DI reg TO Z80 HL
         lahf
+        call    tblk                    ;21T for each repeat
         and     ah,11111010b            ;lose the carry and parity flag
         or      ah,[tempb1]             ;and replace with old carry flag
         jcxz    cpir
@@ -280,6 +289,7 @@ cpd:    XinstB
 ;***********************************************************
 Z_CPDR:
         lahf
+        mov     [tblkn],cx              ;BC at the start (T-states)
         and     ah,00000001b            ;save the carry flag
         mov     [tempb1],ah
         mov     BYTE [FlagN],2
@@ -289,6 +299,7 @@ Z_CPDR:
 repne   scasb                           ;repeat until CX=0 or A=(HL)
 cpdr64e: mov     bx,di                   ;DI reg TO Z80 HL
         lahf
+        call    tblk                    ;21T for each repeat
         and     ah,11111010b            ;lose the carry and parity flag
         or      ah,[tempb1]             ;and replace with old carry flag
         jcxz    cpdr

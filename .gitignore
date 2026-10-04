@@ -11,3 +11,4 @@ z80em86/
 # z80em86 のビルドで取得・生成されるもの
 emu/alink/
 emu/temp/
+zex/

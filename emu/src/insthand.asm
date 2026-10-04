@@ -11,6 +11,8 @@
 ; ChangeLog (most recent entries are at top)
 ;===============================================================================
 ; z80em86-88 - 5 October 2026
+; - Prefixed opcodes subtract their T-states (TC1-TC6) from tleft.
+; - Shared opcode fetch/dispatch code DispA-DispD (was inlined by macros).
 ; - Add Z80R7 (R bit 7). DD/FD/ED/CB prefixed opcodes count a 2nd M1 in R.
 ;
 ; v1.0.0 - 10 February 2009, S.J.Kay
@@ -49,6 +51,7 @@ Z80:
 SEGMENT	.code	public align=16
 
 GLOBAL	Z_8086, CBxops, CByops, IXops, IYops, EDops, CBops
+GLOBAL	DispA, DispB, DispC, DispD
 
 GLOBAL	FlagX,  FlagN,  FlagNx, IFF
 GLOBAL	Z80I, Z80R, Z80R7, Z80SP, Z80IX, Z80IY, Z80AF, Z80BC, Z80DE, Z80HL
@@ -56,6 +59,10 @@ GLOBAL	Z80I, Z80R, Z80R7, Z80SP, Z80IX, Z80IY, Z80AF, Z80BC, Z80DE, Z80HL
 ; declared in TABLE.ASM
 EXTERN  T0, T1, T2, T3
 EXTERN  T4, T5, T6, T7
+; declared in TIMING.ASM
+EXTERN  TC0, TC1, TC2, TC3, TC4, TC5, TC6
+; declared in TIMER.ASM
+EXTERN  tleft, Tslow
 
 %define INSTHAND
 %include "macros.asm"
@@ -75,6 +82,65 @@ Z80AF   resw	1               ;Z80 2nd AF register storage
 Z80BC   resw	1               ;Z80 2nd BC register storage
 Z80DE   resw	1               ;Z80 2nd DE register storage
 Z80HL   resw	1               ;Z80 2nd HL register storage
+
+
+;===============================================================================
+; Fetch and dispatch the next Z80 opcode (end of every opcode handler).
+;   DispA: F from the 8086 flags      DispB: F already in AH
+;   DispC: as DispA with P/V = 0      DispD: as DispA with P/V = 1
+; Subtracts the T-states of the opcode from tleft, Tslow (TIMER.ASM) waits
+; for the timer or accepts an interrupt when tleft goes negative.
+;===============================================================================
+DispC:  lahf
+        and     ah,11111011b            ;reset P/V to indicate no overflow
+        mov     si,ax                   ;save Z80 regs A and F
+        inc     BYTE [Z80R]             ;reg R counts opcode fetches (M1)
+        xor     ah,ah
+        mov     al,[es:Z80+bp]          ;get Z80 opcode
+        mov     di,ax
+        shl     di,1                    ;T0 instruction table offset
+        inc     bp                      ;next Z80 PC
+        mov     ax,[TC0+di]             ;T-states of this opcode
+        sub     [tleft],ax
+        js      dslowc                  ;budget used up or interrupt request
+        mov     ax,si                   ;restore Z80 reg A and F
+        sahf                            ;set 8086 Flags with Z80 reg F (ah)
+        jmp     WORD [T0+di]
+dslowc: jmp     Tslow
+
+DispD:  lahf
+        or      ah,00000100b            ;set P/V to indicate overflow
+        mov     si,ax                   ;save Z80 regs A and F
+        inc     BYTE [Z80R]             ;reg R counts opcode fetches (M1)
+        xor     ah,ah
+        mov     al,[es:Z80+bp]          ;get Z80 opcode
+        mov     di,ax
+        shl     di,1                    ;T0 instruction table offset
+        inc     bp                      ;next Z80 PC
+        mov     ax,[TC0+di]             ;T-states of this opcode
+        sub     [tleft],ax
+        js      dslowd                  ;budget used up or interrupt request
+        mov     ax,si                   ;restore Z80 reg A and F
+        sahf                            ;set 8086 Flags with Z80 reg F (ah)
+        jmp     WORD [T0+di]
+dslowd: jmp     Tslow
+
+DispA:  lahf                            ;get Z80 reg F into reg ah
+DispB:
+        mov     si,ax                   ;save Z80 regs A and F
+        inc     BYTE [Z80R]             ;reg R counts opcode fetches (M1)
+        xor     ah,ah
+        mov     al,[es:Z80+bp]          ;get Z80 opcode
+        mov     di,ax
+        shl     di,1                    ;T0 instruction table offset
+        inc     bp                      ;next Z80 PC
+        mov     ax,[TC0+di]             ;T-states of this opcode
+        sub     [tleft],ax
+        js      dslowb                  ;budget used up or interrupt request
+        mov     ax,si                   ;restore Z80 reg A and F
+        sahf                            ;set 8086 Flags with Z80 reg F (ah)
+        jmp     WORD [T0+di]
+dslowb: jmp     Tslow
 
 ; High level interface functions accessed with OUT (FncNmb),A
 Z_8086: mov     si,ax                   ;save Z80 reg A
@@ -109,6 +175,8 @@ CBxops: lahf                            ;get Z80 reg F
         inc     bp                      ;next Z80 PC
         mov     di,ax
         shl     di,1
+        mov     ax,[TC6+di]             ;T-states of the DD/FD CB op
+        sub     [tleft],ax
         mov     ax,si                   ;restore Z80 reg A and F
         sahf                            ;set Z80 reg F
         mov     si,[svewrd]
@@ -127,6 +195,8 @@ CByops: lahf                            ;get Z80 reg F
         inc     bp                      ;next Z80 PC
         mov     di,ax
         shl     di,1
+        mov     ax,[TC5+di]             ;T-states of the DD/FD CB op
+        sub     [tleft],ax
         mov     ax,si                   ;restore Z80 reg A and F
         sahf                            ;set Z80 reg F
         mov     si,[svewrd]
@@ -141,6 +211,8 @@ IXops:  lahf                            ;get Z80 reg F
         mov     di,ax
         shl     di,1
         inc     bp                      ;next Z80 PC
+        mov     ax,[TC4+di]             ;T-states after the prefix
+        sub     [tleft],ax
         mov     ax,si                   ;restore Z80 reg A and F
         sahf                            ;set Z80 reg F
         jmp     WORD [T4+di]
@@ -154,6 +226,8 @@ IYops:  lahf                            ;get Z80 reg F
         mov     di,ax
         shl     di,1
         inc     bp                      ;next Z80 PC
+        mov     ax,[TC3+di]             ;T-states after the prefix
+        sub     [tleft],ax
         mov     ax,si                   ;restore Z80 reg A and F
         sahf                            ;set Z80 reg F
         jmp     WORD [T3+di]
@@ -167,6 +241,8 @@ EDops:  lahf                            ;get Z80 reg F
         mov     di,ax
         shl     di,1
         inc     bp                      ;next Z80 PC
+        mov     ax,[TC2+di]             ;T-states after the prefix
+        sub     [tleft],ax
         mov     ax,si                   ;restore Z80 reg A and F
         sahf                            ;set Z80 reg F
         jmp     WORD [T2+di]
@@ -180,6 +256,8 @@ CBops:  lahf                            ;get Z80 reg F
         mov     di,ax
         shl     di,1
         inc     bp                      ;next Z80 PC
+        mov     ax,[TC1+di]             ;T-states after the prefix
+        sub     [tleft],ax
         mov     ax,si                   ;restore Z80 reg A and F
         sahf                            ;set Z80 reg F
         jmp     WORD [T1+di]

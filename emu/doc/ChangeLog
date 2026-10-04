@@ -9,6 +9,14 @@ Changes:
 * LD I,A keeps all 8 bits of I.
 * R register counts opcode fetches (M1); bit 7 is kept from LD R,A.
 * LDIR/LDDR/CPIR/CPDR with BC = 0 repeat 65536 times.
+* Real time speed (new files src/timer.asm, src/timing.asm): T-states of
+  every opcode are counted (Zilog UM0080 timings) and the PC timer runs at
+  600 Hz to run the Z80 at 4 MHz. DOS environment Z80SPEED=4/8/0
+  (4 MHz, 8 MHz, no limit).
+* Z80 interrupts: EI/DI (IFF1/IFF2, EI delay), IM 0/1/2, HALT waits for an
+  interrupt, RETN/RETI, interrupt acceptance in IM 0/1/2.
+* The opcode fetch/dispatch code is shared (DispA-DispD) instead of being
+  inlined in every handler, the code segment stays below 64K.
 
 9 March 2011 - SJK
 ------------------

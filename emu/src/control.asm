@@ -10,6 +10,11 @@
 ;===============================================================================
 ; ChangeLog (most recent entries are at top)
 ;===============================================================================
+; z80em86-88 - 5 October 2026
+; - DI/EI set IFF1 and IFF2, EI delays interrupts by one opcode.
+; - IM 0/1/2 set the interrupt mode (they stopped the emulator).
+; - HALT waits for an interrupt when IFF1 = 1 (stops only after DI).
+;
 ; v1.0.0 - 25 February 2009, S.J.Kay
 ; - Convert sources from TASM to NASM format and prepare for GPL release.
 ; - Changed 'lea' instructions to  'mov'.
@@ -56,6 +61,8 @@ EXTERN  Nocde0, Nocde1
 
 ; declared in INSTHAND.ASM
 EXTERN  IFF, FlagN
+; declared in TIMER.ASM
+EXTERN  IFF1, eidly, halted, imode, tforce
 
 %include "macros.asm"
 
@@ -158,6 +165,13 @@ Z_NOP:
 ;*                                      . . x . x  .  . .  *
 ;***********************************************************
 Z_HALT:
+        lahf
+        cmp     BYTE [IFF1],0           ;HALT with interrupts off never ends
+        jz      haltdi
+        mov     BYTE [halted],1
+        dec     bp                      ;run HALT again (4T each) until an
+        XinstB                          ;interrupt is accepted (TIMER.ASM)
+haltdi: sahf
         mov     si,halt
         jmp     NEAR Nocde1
 halt:   db      'HALT$'
@@ -167,7 +181,8 @@ halt:   db      'HALT$'
 ;*                                      . . x . x  .  . .  *
 ;***********************************************************
 Z_DI:
-        mov     BYTE [IFF],0
+        mov     BYTE [IFF],0            ;IFF2 (P/V of LD A,I)
+        mov     BYTE [IFF1],0
         XinstA
 
 ;***********************************************************
@@ -175,16 +190,22 @@ Z_DI:
 ;*                                      . . x . x  .  . .  *
 ;***********************************************************
 Z_EI:
-        mov     BYTE [IFF],4
-        XinstA
+        lahf
+        mov     BYTE [IFF],4            ;IFF2 (P/V of LD A,I)
+        mov     BYTE [IFF1],1
+        mov     BYTE [eidly],1          ;no interrupt before the next opcode
+        cli
+        call    tforce                  ;check interrupts after the next opcode
+        sti
+        XinstB
 
 ;***********************************************************
 ;*      IM      0                Flags: S Z - H - P/V N C  *
 ;*                                      . . x . x  .  . .  *
 ;***********************************************************
 Z_IM0:
-        mov     si,im0
-        jmp     NEAR Nocde0
+        mov     BYTE [imode],0
+        XinstA
 im0:    db      'IM      0$'
 
 ;***********************************************************
@@ -192,8 +213,8 @@ im0:    db      'IM      0$'
 ;*                                      . . x . x  .  . .  *
 ;***********************************************************
 Z_IM1:
-        mov     si,im1
-        jmp     NEAR Nocde0
+        mov     BYTE [imode],1
+        XinstA
 im1:    db      'IM      1$'
 
 ;***********************************************************
@@ -201,8 +222,8 @@ im1:    db      'IM      1$'
 ;*                                      . . x . x  .  . .  *
 ;***********************************************************
 Z_IM2:
-        mov     si,im2
-        jmp     NEAR Nocde0
+        mov     BYTE [imode],2
+        XinstA
 im2:    db      'IM      2$'
 
         end
