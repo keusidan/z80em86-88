@@ -10,6 +10,10 @@
 ;===============================================================================
 ; ChangeLog (most recent entries are at top)
 ;===============================================================================
+; z80em86-88 - 5 October 2026
+; - LD I,A: keep all 8 bits of I (bit 0 was cleared).
+; - LD A,R / LD R,A: R counts opcode fetches, bit 7 kept from LD R,A.
+;
 ; v1.0.0 - 10 February 2009, S.J.Kay
 ; - Convert sources from TASM to NASM format and prepare for GPL release.
 ; - Changed all uses of 'Z80' map segment to 'es:Z80'
@@ -68,7 +72,7 @@ GLOBAL	Z_LDzb, Z_LDzc, Z_LDzd, Z_LDze, Z_LDzh, Z_LDzl,         Z_LDza
 GLOBAL	Z_LDab, Z_LDac, Z_LDad, Z_LDae, Z_LDah, Z_LDal, Z_LDaz, Z_LDaa
 
 ; declared in INSTHAND.ASM
-EXTERN  Z80IX, Z80IY, Z80I, Z80R
+EXTERN  Z80IX, Z80IY, Z80I, Z80R, Z80R7
 EXTERN  IFF,   FlagN
 
 %include "macros.asm"
@@ -1215,14 +1219,16 @@ Z_LDai:
 ;***********************************************************
 Z_LDar:
         mov     BYTE [FlagN],0
-        mov     al,[Z80R]
+        lahf                            ;keep Z80 C flag
+        mov     al,[Z80R]               ;bits 0-6 count opcode fetches
+        and     al,01111111b
+        or      al,[Z80R7]              ;bit 7 is only changed by LD R,A
+        sahf
         inc     al                      ;updates S and Z flags
         dec     al
         lahf
         and     ah,11101011b            ;lose half carry, P/V flag
         or      ah,[IFF]                ;IFF status into P/V flag
-        inc     BYTE [Z80R]             ;reg R simulated update
-        and     BYTE [Z80R],01111111b   ;reg R is 7 bits when read
         XinstB
 
 ;***********************************************************
@@ -1231,8 +1237,7 @@ Z_LDar:
 ;***********************************************************
 Z_LDia:
         lahf
-        mov     [Z80I],al
-        and     BYTE [Z80I],11111110b   ;simulate reg I
+        mov     [Z80I],al               ;reg I is a full 8 bit register
         XinstB
 
 ;***********************************************************
@@ -1242,7 +1247,8 @@ Z_LDia:
 Z_LDra:
         lahf
         mov     [Z80R],al
-        and     BYTE [Z80R],01111111b   ;simulate reg R
+        mov     [Z80R7],al
+        and     BYTE [Z80R7],10000000b  ;bit 7 is kept, bits 0-6 keep counting
         XinstB
 
         end

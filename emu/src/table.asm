@@ -10,6 +10,12 @@
 ;===============================================================================
 ; ChangeLog (most recent entries are at top)
 ;===============================================================================
+; z80em86-88 - 5 October 2026
+; - Fill undocumented slots: IXH/IXL/IYH/IYL ops, DD/FD on other opcodes
+;   run the plain opcode, SLL, DDCB/FDCB copy forms, ED duplicates of
+;   NEG/RETN/RETI/IM/LD (nn),HL/LD HL,(nn), other ED xx run as NOP.
+;   ED 71 (OUT (C),0) still traps, as the other I/O opcodes.
+;
 ; v1.0.0 - 10 February 2009, S.J.Kay
 ; - Convert sources from TASM to NASM format and prepare for GPL release.
 ; - Added 'align=16' to all SEGMENT declarations. (nasm def is align=1)
@@ -42,6 +48,75 @@
 SEGMENT	.code	public align=16
 
 GLOBAL  T0, T1, T2, T3, T4, T5, T6, T7, Tx
+
+; declared in UNDOC.ASM (z80em86-88)
+EXTERN  Z_ADCxh, Z_ADCxl, Z_ADCyh, Z_ADCyl
+EXTERN  Z_ADDxh, Z_ADDxl, Z_ADDyh, Z_ADDyl
+EXTERN  Z_ANDxh, Z_ANDxl, Z_ANDyh, Z_ANDyl
+EXTERN  Z_CPxh, Z_CPxl, Z_CPyh, Z_CPyl
+EXTERN  Z_DECxh, Z_DECxl, Z_DECyh, Z_DECyl
+EXTERN  Z_INCxh, Z_INCxl, Z_INCyh, Z_INCyl
+EXTERN  Z_LDaxh, Z_LDaxl, Z_LDayh, Z_LDayl
+EXTERN  Z_LDbxh, Z_LDbxl, Z_LDbyh, Z_LDbyl
+EXTERN  Z_LDcxh, Z_LDcxl, Z_LDcyh, Z_LDcyl
+EXTERN  Z_LDdxh, Z_LDdxl, Z_LDdyh, Z_LDdyl
+EXTERN  Z_LDexh, Z_LDexl, Z_LDeyh, Z_LDeyl
+EXTERN  Z_LDxha, Z_LDxhb, Z_LDxhc, Z_LDxhd
+EXTERN  Z_LDxhe, Z_LDxhn, Z_LDxhxl, Z_LDxla
+EXTERN  Z_LDxlb, Z_LDxlc, Z_LDxld, Z_LDxle
+EXTERN  Z_LDxln, Z_LDxlxh, Z_LDyha, Z_LDyhb
+EXTERN  Z_LDyhc, Z_LDyhd, Z_LDyhe, Z_LDyhn
+EXTERN  Z_LDyhyl, Z_LDyla, Z_LDylb, Z_LDylc
+EXTERN  Z_LDyld, Z_LDyle, Z_LDyln, Z_LDylyh
+EXTERN  Z_ORxh, Z_ORxl, Z_ORyh, Z_ORyl
+EXTERN  Z_RES0wa, Z_RES0wb, Z_RES0wc, Z_RES0wd
+EXTERN  Z_RES0we, Z_RES0wh, Z_RES0wl, Z_RES1wa
+EXTERN  Z_RES1wb, Z_RES1wc, Z_RES1wd, Z_RES1we
+EXTERN  Z_RES1wh, Z_RES1wl, Z_RES2wa, Z_RES2wb
+EXTERN  Z_RES2wc, Z_RES2wd, Z_RES2we, Z_RES2wh
+EXTERN  Z_RES2wl, Z_RES3wa, Z_RES3wb, Z_RES3wc
+EXTERN  Z_RES3wd, Z_RES3we, Z_RES3wh, Z_RES3wl
+EXTERN  Z_RES4wa, Z_RES4wb, Z_RES4wc, Z_RES4wd
+EXTERN  Z_RES4we, Z_RES4wh, Z_RES4wl, Z_RES5wa
+EXTERN  Z_RES5wb, Z_RES5wc, Z_RES5wd, Z_RES5we
+EXTERN  Z_RES5wh, Z_RES5wl, Z_RES6wa, Z_RES6wb
+EXTERN  Z_RES6wc, Z_RES6wd, Z_RES6we, Z_RES6wh
+EXTERN  Z_RES6wl, Z_RES7wa, Z_RES7wb, Z_RES7wc
+EXTERN  Z_RES7wd, Z_RES7we, Z_RES7wh, Z_RES7wl
+EXTERN  Z_RLCwa, Z_RLCwb, Z_RLCwc, Z_RLCwd
+EXTERN  Z_RLCwe, Z_RLCwh, Z_RLCwl, Z_RLwa
+EXTERN  Z_RLwb, Z_RLwc, Z_RLwd, Z_RLwe
+EXTERN  Z_RLwh, Z_RLwl, Z_RRCwa, Z_RRCwb
+EXTERN  Z_RRCwc, Z_RRCwd, Z_RRCwe, Z_RRCwh
+EXTERN  Z_RRCwl, Z_RRwa, Z_RRwb, Z_RRwc
+EXTERN  Z_RRwd, Z_RRwe, Z_RRwh, Z_RRwl
+EXTERN  Z_SBCxh, Z_SBCxl, Z_SBCyh, Z_SBCyl
+EXTERN  Z_SET0wa, Z_SET0wb, Z_SET0wc, Z_SET0wd
+EXTERN  Z_SET0we, Z_SET0wh, Z_SET0wl, Z_SET1wa
+EXTERN  Z_SET1wb, Z_SET1wc, Z_SET1wd, Z_SET1we
+EXTERN  Z_SET1wh, Z_SET1wl, Z_SET2wa, Z_SET2wb
+EXTERN  Z_SET2wc, Z_SET2wd, Z_SET2we, Z_SET2wh
+EXTERN  Z_SET2wl, Z_SET3wa, Z_SET3wb, Z_SET3wc
+EXTERN  Z_SET3wd, Z_SET3we, Z_SET3wh, Z_SET3wl
+EXTERN  Z_SET4wa, Z_SET4wb, Z_SET4wc, Z_SET4wd
+EXTERN  Z_SET4we, Z_SET4wh, Z_SET4wl, Z_SET5wa
+EXTERN  Z_SET5wb, Z_SET5wc, Z_SET5wd, Z_SET5we
+EXTERN  Z_SET5wh, Z_SET5wl, Z_SET6wa, Z_SET6wb
+EXTERN  Z_SET6wc, Z_SET6wd, Z_SET6we, Z_SET6wh
+EXTERN  Z_SET6wl, Z_SET7wa, Z_SET7wb, Z_SET7wc
+EXTERN  Z_SET7wd, Z_SET7we, Z_SET7wh, Z_SET7wl
+EXTERN  Z_SLAwa, Z_SLAwb, Z_SLAwc, Z_SLAwd
+EXTERN  Z_SLAwe, Z_SLAwh, Z_SLAwl, Z_SLLa
+EXTERN  Z_SLLb, Z_SLLc, Z_SLLd, Z_SLLe
+EXTERN  Z_SLLh, Z_SLLl, Z_SLLw, Z_SLLwa
+EXTERN  Z_SLLwb, Z_SLLwc, Z_SLLwd, Z_SLLwe
+EXTERN  Z_SLLwh, Z_SLLwl, Z_SLLz, Z_SRAwa
+EXTERN  Z_SRAwb, Z_SRAwc, Z_SRAwd, Z_SRAwe
+EXTERN  Z_SRAwh, Z_SRAwl, Z_SRLwa, Z_SRLwb
+EXTERN  Z_SRLwc, Z_SRLwd, Z_SRLwe, Z_SRLwh
+EXTERN  Z_SRLwl, Z_SUBxh, Z_SUBxl, Z_SUByh
+EXTERN  Z_SUByl, Z_XORxh, Z_XORxl, Z_XORyh
+EXTERN  Z_XORyl
 
 ; declared in FUNCTION.ASM
 EXTERN  trp0__,  trp1__,  fnc___
@@ -295,178 +370,178 @@ T7  dw  kbd1in,  kbd1st,  kbd1ip,  fnc___,  fnc___,  fnc___,  fnc___,  fnc___
    
 ;                          $CB opcodes for IX
 ;
-T6  dw  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  Z_RLCw,  trp0__
-    dw  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  Z_RRCw,  trp0__
-    dw  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  Z_RLw,   trp0__
-    dw  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  Z_RRw,   trp0__
-    dw  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  Z_SLAw,  trp0__
-    dw  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  Z_SRAw,  trp0__
-    dw  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  trp0__
-    dw  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  Z_SRLw,  trp0__
-    dw  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  Z_BIT0w, trp0__
-    dw  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  Z_BIT1w, trp0__
-    dw  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  Z_BIT2w, trp0__
-    dw  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  Z_BIT3w, trp0__
-    dw  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  Z_BIT4w, trp0__
-    dw  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  Z_BIT5w, trp0__
-    dw  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  Z_BIT6w, trp0__
-    dw  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  Z_BIT7w, trp0__
-    dw  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  Z_RES0w, trp0__
-    dw  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  Z_RES1w, trp0__
-    dw  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  Z_RES2w, trp0__
-    dw  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  Z_RES3w, trp0__
-    dw  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  Z_RES4w, trp0__
-    dw  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  Z_RES5w, trp0__
-    dw  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  Z_RES6w, trp0__
-    dw  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  Z_RES7w, trp0__
-    dw  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  Z_SET0w, trp0__
-    dw  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  Z_SET1w, trp0__
-    dw  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  Z_SET2w, trp0__
-    dw  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  Z_SET3w, trp0__
-    dw  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  Z_SET4w, trp0__
-    dw  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  Z_SET5w, trp0__
-    dw  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  Z_SET6w, trp0__
-    dw  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  Z_SET7w, trp0__
+T6  dw  Z_RLCwb, Z_RLCwc, Z_RLCwd, Z_RLCwe, Z_RLCwh, Z_RLCwl, Z_RLCw,  Z_RLCwa
+    dw  Z_RRCwb, Z_RRCwc, Z_RRCwd, Z_RRCwe, Z_RRCwh, Z_RRCwl, Z_RRCw,  Z_RRCwa
+    dw  Z_RLwb,  Z_RLwc,  Z_RLwd,  Z_RLwe,  Z_RLwh,  Z_RLwl,  Z_RLw,   Z_RLwa
+    dw  Z_RRwb,  Z_RRwc,  Z_RRwd,  Z_RRwe,  Z_RRwh,  Z_RRwl,  Z_RRw,   Z_RRwa
+    dw  Z_SLAwb, Z_SLAwc, Z_SLAwd, Z_SLAwe, Z_SLAwh, Z_SLAwl, Z_SLAw,  Z_SLAwa
+    dw  Z_SRAwb, Z_SRAwc, Z_SRAwd, Z_SRAwe, Z_SRAwh, Z_SRAwl, Z_SRAw,  Z_SRAwa
+    dw  Z_SLLwb, Z_SLLwc, Z_SLLwd, Z_SLLwe, Z_SLLwh, Z_SLLwl, Z_SLLw,  Z_SLLwa
+    dw  Z_SRLwb, Z_SRLwc, Z_SRLwd, Z_SRLwe, Z_SRLwh, Z_SRLwl, Z_SRLw,  Z_SRLwa
+    dw  Z_BIT0w, Z_BIT0w, Z_BIT0w, Z_BIT0w, Z_BIT0w, Z_BIT0w, Z_BIT0w, Z_BIT0w
+    dw  Z_BIT1w, Z_BIT1w, Z_BIT1w, Z_BIT1w, Z_BIT1w, Z_BIT1w, Z_BIT1w, Z_BIT1w
+    dw  Z_BIT2w, Z_BIT2w, Z_BIT2w, Z_BIT2w, Z_BIT2w, Z_BIT2w, Z_BIT2w, Z_BIT2w
+    dw  Z_BIT3w, Z_BIT3w, Z_BIT3w, Z_BIT3w, Z_BIT3w, Z_BIT3w, Z_BIT3w, Z_BIT3w
+    dw  Z_BIT4w, Z_BIT4w, Z_BIT4w, Z_BIT4w, Z_BIT4w, Z_BIT4w, Z_BIT4w, Z_BIT4w
+    dw  Z_BIT5w, Z_BIT5w, Z_BIT5w, Z_BIT5w, Z_BIT5w, Z_BIT5w, Z_BIT5w, Z_BIT5w
+    dw  Z_BIT6w, Z_BIT6w, Z_BIT6w, Z_BIT6w, Z_BIT6w, Z_BIT6w, Z_BIT6w, Z_BIT6w
+    dw  Z_BIT7w, Z_BIT7w, Z_BIT7w, Z_BIT7w, Z_BIT7w, Z_BIT7w, Z_BIT7w, Z_BIT7w
+    dw  Z_RES0wb,Z_RES0wc,Z_RES0wd,Z_RES0we,Z_RES0wh,Z_RES0wl,Z_RES0w, Z_RES0wa
+    dw  Z_RES1wb,Z_RES1wc,Z_RES1wd,Z_RES1we,Z_RES1wh,Z_RES1wl,Z_RES1w, Z_RES1wa
+    dw  Z_RES2wb,Z_RES2wc,Z_RES2wd,Z_RES2we,Z_RES2wh,Z_RES2wl,Z_RES2w, Z_RES2wa
+    dw  Z_RES3wb,Z_RES3wc,Z_RES3wd,Z_RES3we,Z_RES3wh,Z_RES3wl,Z_RES3w, Z_RES3wa
+    dw  Z_RES4wb,Z_RES4wc,Z_RES4wd,Z_RES4we,Z_RES4wh,Z_RES4wl,Z_RES4w, Z_RES4wa
+    dw  Z_RES5wb,Z_RES5wc,Z_RES5wd,Z_RES5we,Z_RES5wh,Z_RES5wl,Z_RES5w, Z_RES5wa
+    dw  Z_RES6wb,Z_RES6wc,Z_RES6wd,Z_RES6we,Z_RES6wh,Z_RES6wl,Z_RES6w, Z_RES6wa
+    dw  Z_RES7wb,Z_RES7wc,Z_RES7wd,Z_RES7we,Z_RES7wh,Z_RES7wl,Z_RES7w, Z_RES7wa
+    dw  Z_SET0wb,Z_SET0wc,Z_SET0wd,Z_SET0we,Z_SET0wh,Z_SET0wl,Z_SET0w, Z_SET0wa
+    dw  Z_SET1wb,Z_SET1wc,Z_SET1wd,Z_SET1we,Z_SET1wh,Z_SET1wl,Z_SET1w, Z_SET1wa
+    dw  Z_SET2wb,Z_SET2wc,Z_SET2wd,Z_SET2we,Z_SET2wh,Z_SET2wl,Z_SET2w, Z_SET2wa
+    dw  Z_SET3wb,Z_SET3wc,Z_SET3wd,Z_SET3we,Z_SET3wh,Z_SET3wl,Z_SET3w, Z_SET3wa
+    dw  Z_SET4wb,Z_SET4wc,Z_SET4wd,Z_SET4we,Z_SET4wh,Z_SET4wl,Z_SET4w, Z_SET4wa
+    dw  Z_SET5wb,Z_SET5wc,Z_SET5wd,Z_SET5we,Z_SET5wh,Z_SET5wl,Z_SET5w, Z_SET5wa
+    dw  Z_SET6wb,Z_SET6wc,Z_SET6wd,Z_SET6we,Z_SET6wh,Z_SET6wl,Z_SET6w, Z_SET6wa
+    dw  Z_SET7wb,Z_SET7wc,Z_SET7wd,Z_SET7we,Z_SET7wh,Z_SET7wl,Z_SET7w, Z_SET7wa
 
 ;                          $CB opcodes for IY
 ;
-T5  dw  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  Z_RLCv,  trp0__
-    dw  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  Z_RRCv,  trp0__
-    dw  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  Z_RLv,   trp0__
-    dw  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  Z_RRv,   trp0__
-    dw  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  Z_SLAv,  trp0__
-    dw  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  Z_SRAv,  trp0__
-    dw  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  trp0__
-    dw  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  Z_SRLv,  trp0__
-    dw  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  Z_BIT0v, trp0__
-    dw  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  Z_BIT1v, trp0__
-    dw  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  Z_BIT2v, trp0__
-    dw  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  Z_BIT3v, trp0__
-    dw  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  Z_BIT4v, trp0__
-    dw  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  Z_BIT5v, trp0__
-    dw  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  Z_BIT6v, trp0__
-    dw  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  Z_BIT7v, trp0__
-    dw  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  Z_RES0v, trp0__
-    dw  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  Z_RES1v, trp0__
-    dw  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  Z_RES2v, trp0__
-    dw  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  Z_RES3v, trp0__
-    dw  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  Z_RES4v, trp0__
-    dw  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  Z_RES5v, trp0__
-    dw  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  Z_RES6v, trp0__
-    dw  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  Z_RES7v, trp0__
-    dw  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  Z_SET0v, trp0__
-    dw  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  Z_SET1v, trp0__
-    dw  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  Z_SET2v, trp0__
-    dw  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  Z_SET3v, trp0__
-    dw  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  Z_SET4v, trp0__
-    dw  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  Z_SET5v, trp0__
-    dw  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  Z_SET6v, trp0__
-    dw  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  trp0__,  Z_SET7v, trp0__
+T5  dw  Z_RLCwb, Z_RLCwc, Z_RLCwd, Z_RLCwe, Z_RLCwh, Z_RLCwl, Z_RLCv,  Z_RLCwa
+    dw  Z_RRCwb, Z_RRCwc, Z_RRCwd, Z_RRCwe, Z_RRCwh, Z_RRCwl, Z_RRCv,  Z_RRCwa
+    dw  Z_RLwb,  Z_RLwc,  Z_RLwd,  Z_RLwe,  Z_RLwh,  Z_RLwl,  Z_RLv,   Z_RLwa
+    dw  Z_RRwb,  Z_RRwc,  Z_RRwd,  Z_RRwe,  Z_RRwh,  Z_RRwl,  Z_RRv,   Z_RRwa
+    dw  Z_SLAwb, Z_SLAwc, Z_SLAwd, Z_SLAwe, Z_SLAwh, Z_SLAwl, Z_SLAv,  Z_SLAwa
+    dw  Z_SRAwb, Z_SRAwc, Z_SRAwd, Z_SRAwe, Z_SRAwh, Z_SRAwl, Z_SRAv,  Z_SRAwa
+    dw  Z_SLLwb, Z_SLLwc, Z_SLLwd, Z_SLLwe, Z_SLLwh, Z_SLLwl, Z_SLLw,  Z_SLLwa
+    dw  Z_SRLwb, Z_SRLwc, Z_SRLwd, Z_SRLwe, Z_SRLwh, Z_SRLwl, Z_SRLv,  Z_SRLwa
+    dw  Z_BIT0v, Z_BIT0v, Z_BIT0v, Z_BIT0v, Z_BIT0v, Z_BIT0v, Z_BIT0v, Z_BIT0v
+    dw  Z_BIT1v, Z_BIT1v, Z_BIT1v, Z_BIT1v, Z_BIT1v, Z_BIT1v, Z_BIT1v, Z_BIT1v
+    dw  Z_BIT2v, Z_BIT2v, Z_BIT2v, Z_BIT2v, Z_BIT2v, Z_BIT2v, Z_BIT2v, Z_BIT2v
+    dw  Z_BIT3v, Z_BIT3v, Z_BIT3v, Z_BIT3v, Z_BIT3v, Z_BIT3v, Z_BIT3v, Z_BIT3v
+    dw  Z_BIT4v, Z_BIT4v, Z_BIT4v, Z_BIT4v, Z_BIT4v, Z_BIT4v, Z_BIT4v, Z_BIT4v
+    dw  Z_BIT5v, Z_BIT5v, Z_BIT5v, Z_BIT5v, Z_BIT5v, Z_BIT5v, Z_BIT5v, Z_BIT5v
+    dw  Z_BIT6v, Z_BIT6v, Z_BIT6v, Z_BIT6v, Z_BIT6v, Z_BIT6v, Z_BIT6v, Z_BIT6v
+    dw  Z_BIT7v, Z_BIT7v, Z_BIT7v, Z_BIT7v, Z_BIT7v, Z_BIT7v, Z_BIT7v, Z_BIT7v
+    dw  Z_RES0wb,Z_RES0wc,Z_RES0wd,Z_RES0we,Z_RES0wh,Z_RES0wl,Z_RES0v, Z_RES0wa
+    dw  Z_RES1wb,Z_RES1wc,Z_RES1wd,Z_RES1we,Z_RES1wh,Z_RES1wl,Z_RES1v, Z_RES1wa
+    dw  Z_RES2wb,Z_RES2wc,Z_RES2wd,Z_RES2we,Z_RES2wh,Z_RES2wl,Z_RES2v, Z_RES2wa
+    dw  Z_RES3wb,Z_RES3wc,Z_RES3wd,Z_RES3we,Z_RES3wh,Z_RES3wl,Z_RES3v, Z_RES3wa
+    dw  Z_RES4wb,Z_RES4wc,Z_RES4wd,Z_RES4we,Z_RES4wh,Z_RES4wl,Z_RES4v, Z_RES4wa
+    dw  Z_RES5wb,Z_RES5wc,Z_RES5wd,Z_RES5we,Z_RES5wh,Z_RES5wl,Z_RES5v, Z_RES5wa
+    dw  Z_RES6wb,Z_RES6wc,Z_RES6wd,Z_RES6we,Z_RES6wh,Z_RES6wl,Z_RES6v, Z_RES6wa
+    dw  Z_RES7wb,Z_RES7wc,Z_RES7wd,Z_RES7we,Z_RES7wh,Z_RES7wl,Z_RES7v, Z_RES7wa
+    dw  Z_SET0wb,Z_SET0wc,Z_SET0wd,Z_SET0we,Z_SET0wh,Z_SET0wl,Z_SET0v, Z_SET0wa
+    dw  Z_SET1wb,Z_SET1wc,Z_SET1wd,Z_SET1we,Z_SET1wh,Z_SET1wl,Z_SET1v, Z_SET1wa
+    dw  Z_SET2wb,Z_SET2wc,Z_SET2wd,Z_SET2we,Z_SET2wh,Z_SET2wl,Z_SET2v, Z_SET2wa
+    dw  Z_SET3wb,Z_SET3wc,Z_SET3wd,Z_SET3we,Z_SET3wh,Z_SET3wl,Z_SET3v, Z_SET3wa
+    dw  Z_SET4wb,Z_SET4wc,Z_SET4wd,Z_SET4we,Z_SET4wh,Z_SET4wl,Z_SET4v, Z_SET4wa
+    dw  Z_SET5wb,Z_SET5wc,Z_SET5wd,Z_SET5we,Z_SET5wh,Z_SET5wl,Z_SET5v, Z_SET5wa
+    dw  Z_SET6wb,Z_SET6wc,Z_SET6wd,Z_SET6we,Z_SET6wh,Z_SET6wl,Z_SET6v, Z_SET6wa
+    dw  Z_SET7wb,Z_SET7wc,Z_SET7wd,Z_SET7we,Z_SET7wh,Z_SET7wl,Z_SET7v, Z_SET7wa
 
 ;                            1st opcode for IX
 ;
-T4  dw  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__
-    dw  trp1__,  Z_ADxbc, trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__
-    dw  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__
-    dw  trp1__,  Z_ADxde, trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__
-    dw  trp1__,  Z_LDxn,  Z_LDmx,  Z_INCx,  trp1__,  trp1__,  trp1__,  trp1__
-    dw  trp1__,  Z_ADxx,  Z_LDxm,  Z_DECx,  trp1__,  trp1__,  trp1__,  trp1__
-    dw  trp1__,  trp1__,  trp1__,  trp1__,  Z_INCw,  Z_DECw,  Z_LDwn,  trp1__
-    dw  trp1__,  Z_ADxsp, trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__
-    dw  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  Z_LDbw,  trp1__
-    dw  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  Z_LDcw,  trp1__
-    dw  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  Z_LDdw,  trp1__
-    dw  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  Z_LDew,  trp1__
-    dw  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  Z_LDhw,  trp1__
-    dw  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  Z_LDlw,  trp1__
-    dw  Z_LDwb,  Z_LDwc,  Z_LDwd,  Z_LDwe,  Z_LDwh,  Z_LDwl,  trp1__,  Z_LDwa
-    dw  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  Z_LDaw,  trp1__
-    dw  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  Z_ADDw,  trp1__
-    dw  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  Z_ADCw,  trp1__
-    dw  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  Z_SUBw,  trp1__
-    dw  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  Z_SBCw,  trp1__
-    dw  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  Z_ANDw,  trp1__
-    dw  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  Z_XORw,  trp1__
-    dw  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  Z_ORw,   trp1__
-    dw  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  Z_CPw,   trp1__
-    dw  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__
-    dw  trp1__,  trp1__,  trp1__,  CBxops,  trp1__,  trp1__,  trp1__,  trp1__
-    dw  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__
-    dw  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__
-    dw  trp1__,  Z_POPx,  trp1__,  Z_EXspx, trp1__,  Z_PUSHx, trp1__,  trp1__
-    dw  trp1__,  Z_JPx,   trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__
-    dw  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__
-    dw  trp1__,  Z_LDspx, trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__
+T4  dw  Z_NOP,   Z_LDbcn, Z_LDbca, Z_INCbc, Z_INCb,  Z_DECb,  Z_LDbn,  Z_RLCA
+    dw  Z_EXafaf,Z_ADxbc, Z_LDabc, Z_DECbc, Z_INCc,  Z_DECc,  Z_LDcn,  Z_RRCA
+    dw  Z_DJNZ,  Z_LDden, Z_LDdea, Z_INCde, Z_INCd,  Z_DECd,  Z_LDdn,  Z_RLA
+    dw  Z_JR,    Z_ADxde, Z_LDade, Z_DECde, Z_INCe,  Z_DECe,  Z_LDen,  Z_RRA
+    dw  Z_JRNZ,  Z_LDxn,  Z_LDmx,  Z_INCx,  Z_INCxh, Z_DECxh, Z_LDxhn, Z_DAA
+    dw  Z_JRZ,   Z_ADxx,  Z_LDxm,  Z_DECx,  Z_INCxl, Z_DECxl, Z_LDxln, Z_CPL
+    dw  Z_JRNC,  Z_LDspn, Z_LDma,  Z_INCsp, Z_INCw,  Z_DECw,  Z_LDwn,  Z_SCF
+    dw  Z_JRC,   Z_ADxsp, Z_LDam,  Z_DECsp, Z_INCa,  Z_DECa,  Z_LDan,  Z_CCF
+    dw  Z_LDbb,  Z_LDbc,  Z_LDbd,  Z_LDbe,  Z_LDbxh, Z_LDbxl, Z_LDbw,  Z_LDba
+    dw  Z_LDcb,  Z_LDcc,  Z_LDcd,  Z_LDce,  Z_LDcxh, Z_LDcxl, Z_LDcw,  Z_LDca
+    dw  Z_LDdb,  Z_LDdc,  Z_LDdd,  Z_LDde,  Z_LDdxh, Z_LDdxl, Z_LDdw,  Z_LDda
+    dw  Z_LDeb,  Z_LDec,  Z_LDed,  Z_LDee,  Z_LDexh, Z_LDexl, Z_LDew,  Z_LDea
+    dw  Z_LDxhb, Z_LDxhc, Z_LDxhd, Z_LDxhe, Z_NOP,   Z_LDxhxl,Z_LDhw,  Z_LDxha
+    dw  Z_LDxlb, Z_LDxlc, Z_LDxld, Z_LDxle, Z_LDxlxh,Z_NOP,   Z_LDlw,  Z_LDxla
+    dw  Z_LDwb,  Z_LDwc,  Z_LDwd,  Z_LDwe,  Z_LDwh,  Z_LDwl,  Z_HALT,  Z_LDwa
+    dw  Z_LDab,  Z_LDac,  Z_LDad,  Z_LDae,  Z_LDaxh, Z_LDaxl, Z_LDaw,  Z_LDaa
+    dw  Z_ADDb,  Z_ADDc,  Z_ADDd,  Z_ADDe,  Z_ADDxh, Z_ADDxl, Z_ADDw,  Z_ADDa
+    dw  Z_ADCb,  Z_ADCc,  Z_ADCd,  Z_ADCe,  Z_ADCxh, Z_ADCxl, Z_ADCw,  Z_ADCa
+    dw  Z_SUBb,  Z_SUBc,  Z_SUBd,  Z_SUBe,  Z_SUBxh, Z_SUBxl, Z_SUBw,  Z_SUBa
+    dw  Z_SBCb,  Z_SBCc,  Z_SBCd,  Z_SBCe,  Z_SBCxh, Z_SBCxl, Z_SBCw,  Z_SBCa
+    dw  Z_ANDb,  Z_ANDc,  Z_ANDd,  Z_ANDe,  Z_ANDxh, Z_ANDxl, Z_ANDw,  Z_ANDa
+    dw  Z_XORb,  Z_XORc,  Z_XORd,  Z_XORe,  Z_XORxh, Z_XORxl, Z_XORw,  Z_XORa
+    dw  Z_ORb,   Z_ORc,   Z_ORd,   Z_ORe,   Z_ORxh,  Z_ORxl,  Z_ORw,   Z_ORa
+    dw  Z_CPb,   Z_CPc,   Z_CPd,   Z_CPe,   Z_CPxh,  Z_CPxl,  Z_CPw,   Z_CPa
+    dw  Z_RETNZ, Z_POPbc, Z_JPNZ,  Z_JP,    Z_CALLNZ,Z_PUSHbc,Z_ADDn,  Z_RST0
+    dw  Z_RETZ,  Z_RET,   Z_JPZ,   CBxops,  Z_CALLZ, Z_CALL,  Z_ADCn,  Z_RST1
+    dw  Z_RETNC, Z_POPde, Z_JPNC,  Z_8086,  Z_CALLNC,Z_PUSHde,Z_SUBn,  Z_RST2
+    dw  Z_RETC,  Z_EXX,   Z_JPC,   Z_INan,  Z_CALLC, IXops,   Z_SBCn,  Z_RST3
+    dw  Z_RETPO, Z_POPx,  Z_JPPO,  Z_EXspx, Z_CALLPO,Z_PUSHx, Z_ANDn,  Z_RST4
+    dw  Z_RETPE, Z_JPx,   Z_JPPE,  Z_EXdehl,Z_CALLPE,EDops,   Z_XORn,  Z_RST5
+    dw  Z_RETP,  Z_POPaf, Z_JPP,   Z_DI,    Z_CALLP, Z_PUSHaf,Z_ORn,   Z_RST6
+    dw  Z_RETM,  Z_LDspx, Z_JPM,   Z_EI,    Z_CALLM, IYops,   Z_CPn,   Z_RST7
 
 ;                            1st opcode for IY
 ;
-T3  dw  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__
-    dw  trp1__,  Z_ADybc, trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__
-    dw  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__
-    dw  trp1__,  Z_ADyde, trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__
-    dw  trp1__,  Z_LDyn,  Z_LDmy,  Z_INCy,  trp1__,  trp1__,  trp1__,  trp1__
-    dw  trp1__,  Z_ADyy,  Z_LDym,  Z_DECy,  trp1__,  trp1__,  trp1__,  trp1__
-    dw  trp1__,  trp1__,  trp1__,  trp1__,  Z_INCv,  Z_DECv,  Z_LDvn,  trp1__
-    dw  trp1__,  Z_ADysp, trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__
-    dw  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  Z_LDbv,  trp1__
-    dw  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  Z_LDcv,  trp1__
-    dw  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  Z_LDdv,  trp1__
-    dw  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  Z_LDev,  trp1__
-    dw  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  Z_LDhv,  trp1__
-    dw  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  Z_LDlv,  trp1__
-    dw  Z_LDvb,  Z_LDvc,  Z_LDvd,  Z_LDve,  Z_LDvh,  Z_LDvl,  trp1__,  Z_LDva
-    dw  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  Z_LDav,  trp1__
-    dw  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  Z_ADDv,  trp1__
-    dw  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  Z_ADCv,  trp1__
-    dw  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  Z_SUBv,  trp1__
-    dw  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  Z_SBCv,  trp1__
-    dw  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  Z_ANDv,  trp1__
-    dw  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  Z_XORv,  trp1__
-    dw  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  Z_ORv,   trp1__
-    dw  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  Z_CPv,   trp1__
-    dw  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__
-    dw  trp1__,  trp1__,  trp1__,  CByops,  trp1__,  trp1__,  trp1__,  trp1__
-    dw  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__
-    dw  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__
-    dw  trp1__,  Z_POPy,  trp1__,  Z_EXspy, trp1__,  Z_PUSHy, trp1__,  trp1__
-    dw  trp1__,  Z_JPy,   trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__
-    dw  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__
-    dw  trp1__,  Z_LDspy, trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__
+T3  dw  Z_NOP,   Z_LDbcn, Z_LDbca, Z_INCbc, Z_INCb,  Z_DECb,  Z_LDbn,  Z_RLCA
+    dw  Z_EXafaf,Z_ADybc, Z_LDabc, Z_DECbc, Z_INCc,  Z_DECc,  Z_LDcn,  Z_RRCA
+    dw  Z_DJNZ,  Z_LDden, Z_LDdea, Z_INCde, Z_INCd,  Z_DECd,  Z_LDdn,  Z_RLA
+    dw  Z_JR,    Z_ADyde, Z_LDade, Z_DECde, Z_INCe,  Z_DECe,  Z_LDen,  Z_RRA
+    dw  Z_JRNZ,  Z_LDyn,  Z_LDmy,  Z_INCy,  Z_INCyh, Z_DECyh, Z_LDyhn, Z_DAA
+    dw  Z_JRZ,   Z_ADyy,  Z_LDym,  Z_DECy,  Z_INCyl, Z_DECyl, Z_LDyln, Z_CPL
+    dw  Z_JRNC,  Z_LDspn, Z_LDma,  Z_INCsp, Z_INCv,  Z_DECv,  Z_LDvn,  Z_SCF
+    dw  Z_JRC,   Z_ADysp, Z_LDam,  Z_DECsp, Z_INCa,  Z_DECa,  Z_LDan,  Z_CCF
+    dw  Z_LDbb,  Z_LDbc,  Z_LDbd,  Z_LDbe,  Z_LDbyh, Z_LDbyl, Z_LDbv,  Z_LDba
+    dw  Z_LDcb,  Z_LDcc,  Z_LDcd,  Z_LDce,  Z_LDcyh, Z_LDcyl, Z_LDcv,  Z_LDca
+    dw  Z_LDdb,  Z_LDdc,  Z_LDdd,  Z_LDde,  Z_LDdyh, Z_LDdyl, Z_LDdv,  Z_LDda
+    dw  Z_LDeb,  Z_LDec,  Z_LDed,  Z_LDee,  Z_LDeyh, Z_LDeyl, Z_LDev,  Z_LDea
+    dw  Z_LDyhb, Z_LDyhc, Z_LDyhd, Z_LDyhe, Z_NOP,   Z_LDyhyl,Z_LDhv,  Z_LDyha
+    dw  Z_LDylb, Z_LDylc, Z_LDyld, Z_LDyle, Z_LDylyh,Z_NOP,   Z_LDlv,  Z_LDyla
+    dw  Z_LDvb,  Z_LDvc,  Z_LDvd,  Z_LDve,  Z_LDvh,  Z_LDvl,  Z_HALT,  Z_LDva
+    dw  Z_LDab,  Z_LDac,  Z_LDad,  Z_LDae,  Z_LDayh, Z_LDayl, Z_LDav,  Z_LDaa
+    dw  Z_ADDb,  Z_ADDc,  Z_ADDd,  Z_ADDe,  Z_ADDyh, Z_ADDyl, Z_ADDv,  Z_ADDa
+    dw  Z_ADCb,  Z_ADCc,  Z_ADCd,  Z_ADCe,  Z_ADCyh, Z_ADCyl, Z_ADCv,  Z_ADCa
+    dw  Z_SUBb,  Z_SUBc,  Z_SUBd,  Z_SUBe,  Z_SUByh, Z_SUByl, Z_SUBv,  Z_SUBa
+    dw  Z_SBCb,  Z_SBCc,  Z_SBCd,  Z_SBCe,  Z_SBCyh, Z_SBCyl, Z_SBCv,  Z_SBCa
+    dw  Z_ANDb,  Z_ANDc,  Z_ANDd,  Z_ANDe,  Z_ANDyh, Z_ANDyl, Z_ANDv,  Z_ANDa
+    dw  Z_XORb,  Z_XORc,  Z_XORd,  Z_XORe,  Z_XORyh, Z_XORyl, Z_XORv,  Z_XORa
+    dw  Z_ORb,   Z_ORc,   Z_ORd,   Z_ORe,   Z_ORyh,  Z_ORyl,  Z_ORv,   Z_ORa
+    dw  Z_CPb,   Z_CPc,   Z_CPd,   Z_CPe,   Z_CPyh,  Z_CPyl,  Z_CPv,   Z_CPa
+    dw  Z_RETNZ, Z_POPbc, Z_JPNZ,  Z_JP,    Z_CALLNZ,Z_PUSHbc,Z_ADDn,  Z_RST0
+    dw  Z_RETZ,  Z_RET,   Z_JPZ,   CByops,  Z_CALLZ, Z_CALL,  Z_ADCn,  Z_RST1
+    dw  Z_RETNC, Z_POPde, Z_JPNC,  Z_8086,  Z_CALLNC,Z_PUSHde,Z_SUBn,  Z_RST2
+    dw  Z_RETC,  Z_EXX,   Z_JPC,   Z_INan,  Z_CALLC, IXops,   Z_SBCn,  Z_RST3
+    dw  Z_RETPO, Z_POPy,  Z_JPPO,  Z_EXspy, Z_CALLPO,Z_PUSHy, Z_ANDn,  Z_RST4
+    dw  Z_RETPE, Z_JPy,   Z_JPPE,  Z_EXdehl,Z_CALLPE,EDops,   Z_XORn,  Z_RST5
+    dw  Z_RETP,  Z_POPaf, Z_JPP,   Z_DI,    Z_CALLP, Z_PUSHaf,Z_ORn,   Z_RST6
+    dw  Z_RETM,  Z_LDspy, Z_JPM,   Z_EI,    Z_CALLM, IYops,   Z_CPn,   Z_RST7
 
 ;                             $ED Opcode Table
 ;
-T2  dw  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__
-    dw  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__
-    dw  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__
-    dw  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__
-    dw  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__
-    dw  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__
-    dw  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__
-    dw  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__
+T2  dw  Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP
+    dw  Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP
+    dw  Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP
+    dw  Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP
+    dw  Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP
+    dw  Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP
+    dw  Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP
+    dw  Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP
     dw  Z_INbc,  Z_OUTcb, Z_SChlbc,Z_LDmbc, Z_NEG,   Z_RETN,  Z_IM0,   Z_LDia
-    dw  Z_INcc,  Z_OUTcc, Z_AChlbc,Z_LDbcm, trp1__,  Z_RETI,  trp1__,  Z_LDra
-    dw  Z_INdc,  Z_OUTcd, Z_SChlde,Z_LDmde, trp1__,  trp1__,  Z_IM1,   Z_LDai
-    dw  Z_INec,  Z_OUTce, Z_AChlde,Z_LDdem, trp1__,  trp1__,  Z_IM2,   Z_LDar
-    dw  Z_INhc,  Z_OUTch, Z_SChlhl,trp1__,  trp1__,  trp1__,  trp1__,  Z_RRD
-    dw  Z_INlc,  Z_OUTcl, Z_AChlhl,trp1__,  trp1__,  trp1__,  trp1__,  Z_RLD
-    dw  Z_INfc,  trp1__,  Z_SChlsp,Z_LDmsp, trp1__,  trp1__,  trp1__,  trp1__
-    dw  Z_INac,  Z_OUTca, Z_AChlsp,Z_LDspm, trp1__,  trp1__,  trp1__,  trp1__
-    dw  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__
-    dw  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__
-    dw  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__
-    dw  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__
-    dw  Z_LDI,   Z_CPI,   Z_INI,   Z_OUTI,  trp1__,  trp1__,  trp1__,  trp1__
-    dw  Z_LDD,   Z_CPD,   Z_IND,   Z_OUTD,  trp1__,  trp1__,  trp1__,  trp1__
-    dw  Z_LDIR,  Z_CPIR,  Z_INIR,  Z_OTIR,  trp1__,  trp1__,  trp1__,  trp1__
-    dw  Z_LDDR,  Z_CPDR,  Z_INDR,  Z_OTDR,  trp1__,  trp1__,  trp1__,  trp1__
-    dw  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__
-    dw  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__
-    dw  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__
-    dw  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__
-    dw  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__
-    dw  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__
-    dw  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__
-    dw  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__
+    dw  Z_INcc,  Z_OUTcc, Z_AChlbc,Z_LDbcm, Z_NEG,   Z_RETI,  Z_IM0,   Z_LDra
+    dw  Z_INdc,  Z_OUTcd, Z_SChlde,Z_LDmde, Z_NEG,   Z_RETN,  Z_IM1,   Z_LDai
+    dw  Z_INec,  Z_OUTce, Z_AChlde,Z_LDdem, Z_NEG,   Z_RETI,  Z_IM2,   Z_LDar
+    dw  Z_INhc,  Z_OUTch, Z_SChlhl,Z_LDmhl, Z_NEG,   Z_RETN,  Z_IM0,   Z_RRD
+    dw  Z_INlc,  Z_OUTcl, Z_AChlhl,Z_LDhlm, Z_NEG,   Z_RETI,  Z_IM0,   Z_RLD
+    dw  Z_INfc,  trp1__,  Z_SChlsp,Z_LDmsp, Z_NEG,   Z_RETN,  Z_IM1,   Z_NOP
+    dw  Z_INac,  Z_OUTca, Z_AChlsp,Z_LDspm, Z_NEG,   Z_RETI,  Z_IM2,   Z_NOP
+    dw  Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP
+    dw  Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP
+    dw  Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP
+    dw  Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP
+    dw  Z_LDI,   Z_CPI,   Z_INI,   Z_OUTI,  Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP
+    dw  Z_LDD,   Z_CPD,   Z_IND,   Z_OUTD,  Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP
+    dw  Z_LDIR,  Z_CPIR,  Z_INIR,  Z_OTIR,  Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP
+    dw  Z_LDDR,  Z_CPDR,  Z_INDR,  Z_OTDR,  Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP
+    dw  Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP
+    dw  Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP
+    dw  Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP
+    dw  Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP
+    dw  Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP
+    dw  Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP
+    dw  Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP
+    dw  Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP
 
 ;                           $CB opcode table
 ;
@@ -476,7 +551,7 @@ T1  dw  Z_RLCb,  Z_RLCc,  Z_RLCd,  Z_RLCe,  Z_RLCh,  Z_RLCl,  Z_RLCz,  Z_RLCa
     dw  Z_RRb,   Z_RRc,   Z_RRd,   Z_RRe,   Z_RRh,   Z_RRl,   Z_RRz,   Z_RRa
     dw  Z_SLAb,  Z_SLAc,  Z_SLAd,  Z_SLAe,  Z_SLAh,  Z_SLAl,  Z_SLAz,  Z_SLAa
     dw  Z_SRAb,  Z_SRAc,  Z_SRAd,  Z_SRAe,  Z_SRAh,  Z_SRAl,  Z_SRAz,  Z_SRAa
-    dw  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__,  trp1__
+    dw  Z_SLLb,  Z_SLLc,  Z_SLLd,  Z_SLLe,  Z_SLLh,  Z_SLLl,  Z_SLLz,  Z_SLLa
     dw  Z_SRLb,  Z_SRLc,  Z_SRLd,  Z_SRLe,  Z_SRLh,  Z_SRLl,  Z_SRLz,  Z_SRLa
     dw  Z_BIT0b, Z_BIT0c, Z_BIT0d, Z_BIT0e, Z_BIT0h, Z_BIT0l, Z_BIT0z, Z_BIT0a
     dw  Z_BIT1b, Z_BIT1c, Z_BIT1d, Z_BIT1e, Z_BIT1h, Z_BIT1l, Z_BIT1z, Z_BIT1a

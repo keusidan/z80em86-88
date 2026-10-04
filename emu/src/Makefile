@@ -8,6 +8,10 @@
 #===============================================================================
 # REVISION HISTORY (Most recent at top)
 #===============================================================================
+# z80em86-88 - 5 October 2026
+# -----------------------------
+# Add undoc.obj (undocumented Z80 instructions).
+#
 # v1.0.0 - S.J.Kay 13/2/2009
 # --------------------------
 # Created initial Makefile.
@@ -49,7 +53,7 @@ APPIDSTR=\"$(APP)\"
 OBJA=./arith16.obj ./bit.obj ./control.obj ./function.obj ./insthand.obj
 OBJA+=./jump.obj ./load8.obj ./main.obj ./rotate.obj ./table.obj ./window.obj
 OBJA+=./arith8.obj ./call.obj ./exchange.obj ./hardware.obj ./io.obj ./load16.obj
-OBJA+=./macros.obj ./res.obj ./set.obj ./video.obj
+OBJA+=./macros.obj ./res.obj ./set.obj ./video.obj ./undoc.obj
 
 # Dependencies
 DEPENDENCIES=macros.asm Makefile

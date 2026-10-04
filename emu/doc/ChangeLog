@@ -1,3 +1,14 @@
+5 October 2026 - z80em86-88
+---------------------------
+Modified version of z80em86 1.0.2 (https://github.com/keusidan/z80em86-88).
+
+Changes:
+* Undocumented Z80 instructions (new file src/undoc.asm): IXH/IXL/IYH/IYL,
+  SLL, DDCB/FDCB copy-to-register forms, DD/FD ignored before other opcodes,
+  ED duplicates, other ED xx run as NOP.
+* LD I,A keeps all 8 bits of I.
+* R register counts opcode fetches (M1); bit 7 is kept from LD R,A.
+
 9 March 2011 - SJK
 ------------------
 z80em86 v1.0.2

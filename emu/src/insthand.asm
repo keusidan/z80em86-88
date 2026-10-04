@@ -10,6 +10,9 @@
 ;===============================================================================
 ; ChangeLog (most recent entries are at top)
 ;===============================================================================
+; z80em86-88 - 5 October 2026
+; - Add Z80R7 (R bit 7). DD/FD/ED/CB prefixed opcodes count a 2nd M1 in R.
+;
 ; v1.0.0 - 10 February 2009, S.J.Kay
 ; - Convert sources from TASM to NASM format and prepare for GPL release.
 ; - Changed all uses of 'Z80' map segment to 'es:Z80'
@@ -48,12 +51,13 @@ SEGMENT	.code	public align=16
 GLOBAL	Z_8086, CBxops, CByops, IXops, IYops, EDops, CBops
 
 GLOBAL	FlagX,  FlagN,  FlagNx, IFF
-GLOBAL	Z80I, Z80R, Z80SP, Z80IX, Z80IY, Z80AF, Z80BC, Z80DE, Z80HL
+GLOBAL	Z80I, Z80R, Z80R7, Z80SP, Z80IX, Z80IY, Z80AF, Z80BC, Z80DE, Z80HL
 
 ; declared in TABLE.ASM
 EXTERN  T0, T1, T2, T3
 EXTERN  T4, T5, T6, T7
 
+%define INSTHAND
 %include "macros.asm"
 
 svewrd  resw	1               ;temporary word storage
@@ -62,7 +66,8 @@ FlagN   resb	1               ;Emulates the Z80 N flag (bit 1)
 FlagNx  resb	1               ;
 IFF     resb	1               ;Z80 Interrupt Flip Flop
 Z80I    resb	1               ;Z80 interrupt register
-Z80R    resb	1               ;Z80 refresh register
+Z80R    resb	1               ;Z80 refresh register (bits 0-6 count M1)
+Z80R7   resb	1               ;Z80 refresh register bit 7 (set by LD R,A)
 Z80SP   resw	1               ;Z80 stack pointer storage
 Z80IX   resw	1               ;Z80 IX index register storage
 Z80IY   resw	1               ;Z80 IY index register storage
@@ -130,6 +135,7 @@ CByops: lahf                            ;get Z80 reg F
 ; IX opcode of Z80 instruction
 IXops:  lahf                            ;get Z80 reg F
         mov     si,ax                   ;save Z80 regs A and F
+        inc     BYTE [Z80R]             ;prefixed opcode is a 2nd M1
         xor     ah,ah
         mov     al,[es:Z80+bp]          ;get Z80 opcode
         mov     di,ax
@@ -142,6 +148,7 @@ IXops:  lahf                            ;get Z80 reg F
 ; IY opcode of Z80 instruction
 IYops:  lahf                            ;get Z80 reg F
         mov     si,ax                   ;save Z80 regs A and F
+        inc     BYTE [Z80R]             ;prefixed opcode is a 2nd M1
         xor     ah,ah
         mov     al,[es:Z80+bp]          ;get Z80 opcode
         mov     di,ax
@@ -154,6 +161,7 @@ IYops:  lahf                            ;get Z80 reg F
 ; $ED opcode of Z80 instruction
 EDops:  lahf                            ;get Z80 reg F
         mov     si,ax                   ;save Z80 regs A and F
+        inc     BYTE [Z80R]             ;prefixed opcode is a 2nd M1
         xor     ah,ah
         mov     al,[es:Z80+bp]          ;get Z80 opcode
         mov     di,ax
@@ -166,6 +174,7 @@ EDops:  lahf                            ;get Z80 reg F
 ; $CB opcode of Z80 instruction
 CBops:  lahf                            ;get Z80 reg F
         mov     si,ax                   ;save Z80 regs A and F
+        inc     BYTE [Z80R]             ;prefixed opcode is a 2nd M1
         xor     ah,ah
         mov     al,[es:Z80+bp]          ;get Z80 opcode
         mov     di,ax

@@ -10,6 +10,9 @@
 ;===============================================================================
 ; ChangeLog (most recent entries are at top)
 ;===============================================================================
+; z80em86-88 - 5 October 2026
+; - Xinst macros increment R on every opcode fetch (M1).
+;
 ; v1.0.0 - 10 February 2009, S.J.Kay
 ; - Convert sources from TASM to NASM format and prepare for GPL release.
 ; - Added 'BITS 16' and 'CPU 8086' and make all ASM files include this file.
@@ -44,10 +47,14 @@ BITS 16
 CPU 8086
 
 EXTERN  T0
+%ifndef INSTHAND
+EXTERN  Z80R
+%endif
 
 %MACRO	XinstA	0
         lahf                            ;get Z80 reg F into reg ah
         mov     si,ax                   ;save Z80 regs A and F
+        inc     BYTE [Z80R]             ;reg R counts opcode fetches (M1)
         xor     ah,ah
         mov     al,[es:Z80+bp]          ;get Z80 opcode
         mov     di,ax
@@ -60,6 +67,7 @@ EXTERN  T0
 
 %MACRO	XinstB	0
         mov     si,ax                   ;save Z80 regs A and F
+        inc     BYTE [Z80R]             ;reg R counts opcode fetches (M1)
         xor     ah,ah
         mov     al,[es:Z80+bp]          ;get Z80 opcode
         mov     di,ax
@@ -74,6 +82,7 @@ EXTERN  T0
         lahf                            ;get Z80 reg F into reg ah
         and     ah,11111011b            ;reset P/V to indicate no overflow
         mov     si,ax                   ;save Z80 regs A and F
+        inc     BYTE [Z80R]             ;reg R counts opcode fetches (M1)
         xor     ah,ah
         mov     al,[es:Z80+bp]          ;get Z80 opcode
         mov     di,ax
@@ -88,6 +97,7 @@ EXTERN  T0
         lahf                            ;get Z80 reg F into reg ah
         or      ah,00000100b            ;set P/V to indicate overflow
         mov     si,ax                   ;save Z80 regs A and F
+        inc     BYTE [Z80R]             ;reg R counts opcode fetches (M1)
         xor     ah,ah
         mov     al,[es:Z80+bp]          ;get Z80 opcode
         mov     di,ax
