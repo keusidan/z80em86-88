@@ -5,7 +5,7 @@
 BDOS    equ     5
 PRSTR   equ     9
 
-        org     100h
+; no ORG: ZML links the code segment (CSEG) at 0100h
 
         ld      b,20
 outer:  ld      de,0            ; 65536 loops (DE wraps from 0)
