@@ -1,0 +1,5 @@
+device conout:=crt2
+dostocpm c:\z80check.z80 c: /f
+zmac z80check.z80
+zml z80check
+z80check

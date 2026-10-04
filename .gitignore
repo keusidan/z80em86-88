@@ -1,0 +1,13 @@
+# ビルド成果物
+build/
+emu/src/build/
+
+# scripts/get-tools.sh で取得する第三者の配布物（license がそれぞれ異なるので入れない）
+nasm/
+edit/
+zmac/
+z80em86/
+
+# z80em86 のビルドで取得・生成されるもの
+emu/alink/
+emu/temp/

@@ -1,0 +1,248 @@
+; z80check.z80 - check which Z80 features the emulator supports (CP/M 3 .COM)
+;   build (CP/M): zmac z80check.z80 ; zml z80check
+; each test leaves Z=1 on pass, then calls RESULT with DE -> test name
+; keep this file ASCII only: DOS EDIT cannot show UTF-8
+
+BDOS    equ     5
+PRSTR   equ     9
+
+        org     100h
+
+start:
+; 1. EX AF,AF' (alternate AF)
+        ld      a,1
+        ex      af,af'
+        ld      a,2
+        ex      af,af'
+        cp      1
+        ld      de,t_exaf
+        call    result
+
+; 2. EXX (alternate BC/DE/HL)
+        ld      bc,1234h
+        exx
+        ld      bc,5678h
+        exx
+        ld      a,b
+        cp      12h
+        ld      de,t_exx
+        call    result
+
+; 3. IX/IY indexed addressing
+        ld      ix,buf
+        ld      (ix+3),55h
+        ld      iy,buf
+        ld      a,(iy+3)
+        cp      55h
+        ld      de,t_index
+        call    result
+
+; 4. LDIR (block copy) and P/V flag = 0 when BC reaches 0
+        ld      hl,src
+        ld      de,buf
+        ld      bc,5
+        ldir
+        jp      pe,fail4        ; P/V must be 0 after LDIR
+        ld      a,(buf+4)
+        cp      'E'
+        jr      t4
+fail4:  or      1               ; force Z=0
+t4:     ld      de,t_ldir
+        call    result
+
+; 5. CPIR (block search): find 'C' in "ABCDE", BC = 2 remaining
+        ld      hl,src
+        ld      bc,5
+        ld      a,'C'
+        cpir
+        ld      a,c
+        cp      2
+        ld      de,t_cpir
+        call    result
+
+; 6. DJNZ (loop counter in B)
+        ld      b,10
+        xor     a
+t6:     inc     a
+        djnz    t6
+        cp      10
+        ld      de,t_djnz
+        call    result
+
+; 7. BIT / SET / RES
+        xor     a
+        set     7,a
+        bit     7,a
+        jr      z,fail7
+        res     7,a
+        or      a
+        jr      t7
+fail7:  or      1
+t7:     ld      de,t_bit
+        call    result
+
+; 8. RLD (rotate BCD digits): A=12h,(HL)=34h -> A=13h,(HL)=42h
+        ld      hl,buf
+        ld      (hl),34h
+        ld      a,12h
+        rld
+        cp      13h
+        jr      nz,t8
+        ld      a,(hl)
+        cp      42h
+t8:     ld      de,t_rld
+        call    result
+
+; 9. NEG
+        ld      a,1
+        neg
+        cp      0FFh
+        ld      de,t_neg
+        call    result
+
+; 10. DAA (BCD add): 15h + 27h = 42h
+        ld      a,15h
+        add     a,27h
+        daa
+        cp      42h
+        ld      de,t_daa
+        call    result
+
+; 11. ADC HL,rr / SBC HL,rr (16-bit with carry)
+        ld      hl,1000h
+        ld      de,0FFFh
+        scf
+        adc     hl,de           ; 1000h + 0FFFh + 1 = 2000h
+        ld      de,2000h
+        or      a
+        sbc     hl,de           ; Z=1 when HL == 2000h
+        ld      de,t_adcsbc
+        call    result
+
+; 12. LD I,A / LD A,I (interrupt vector register)
+        ld      a,5
+        ld      i,a
+        xor     a
+        ld      a,i
+        cp      5
+        ld      de,t_ireg
+        call    result
+
+; 13. undocumented: LD IXH,n (DD 26 n)
+        ld      ix,0
+        db      0DDh,26h,12h    ; ld ixh,12h
+        push    ix
+        pop     hl
+        ld      a,h
+        cp      12h
+        ld      de,t_ixh
+        call    result
+
+; 14. undocumented: SLL A (CB 37) = shift left, bit 0 <- 1
+        ld      a,40h
+        db      0CBh,37h        ; sll a
+        cp      81h
+        ld      de,t_sll
+        call    result
+
+; 15. R register: bit 7 kept from LD R,A, bits 0-6 count M1 (ED, 57 -> +2)
+        ld      a,80h
+        ld      r,a
+        ld      a,r
+        cp      82h
+        ld      de,t_rreg
+        call    result
+
+; 16. undocumented: LD IYL,n / LD A,IYL / ADD A,IYL
+        ld      iy,0
+        db      0FDh,2Eh,05h    ; ld iyl,5
+        db      0FDh,7Dh        ; ld a,iyl
+        db      0FDh,85h        ; add a,iyl
+        cp      10
+        ld      de,t_iyl
+        call    result
+
+; 17. undocumented: RLC (IX+0) with copy to B (DD CB 00 00)
+        ld      ix,buf
+        ld      (ix+0),81h
+        ld      b,0
+        db      0DDh,0CBh,00h,00h
+        ld      a,b
+        cp      03h
+        jr      nz,t17
+        ld      a,(buf)
+        cp      03h
+t17:    ld      de,t_ddcb
+        call    result
+
+; 18. undocumented: ED 4C is NEG
+        ld      a,1
+        db      0EDh,4Ch
+        cp      0FFh
+        ld      de,t_edneg
+        call    result
+
+; 19. undocumented: ED 00 is a NOP
+        ld      a,55h
+        db      0EDh,00h
+        cp      55h
+        ld      de,t_ednop
+        call    result
+
+; 20. DD before a non-index opcode is ignored (DD 3E 42 = LD A,42h)
+        db      0DDh,3Eh,42h
+        cp      42h
+        ld      de,t_ddign
+        call    result
+
+; 21. undocumented: SLL (HL) (CB 36)
+        ld      hl,buf
+        ld      (hl),1
+        db      0CBh,36h
+        ld      a,(hl)
+        cp      3
+        ld      de,t_sllhl
+        call    result
+
+        ret                     ; back to CCP
+
+; RESULT: print name at DE, then OK (Z=1) or NG (Z=0)
+result:
+        push    af
+        ld      c,PRSTR
+        call    BDOS
+        pop     af
+        ld      de,m_ok
+        jr      z,r1
+        ld      de,m_ng
+r1:     ld      c,PRSTR
+        jp      BDOS
+
+m_ok:   db      'OK',13,10,'$'
+m_ng:   db      'NG',13,10,'$'
+t_exaf: db      "EX AF,AF'      : $"
+t_exx:  db      'EXX            : $'
+t_index: db     'IX/IY (d)      : $'
+t_ldir: db      'LDIR + P/V     : $'
+t_cpir: db      'CPIR           : $'
+t_djnz: db      'DJNZ           : $'
+t_bit:  db      'BIT/SET/RES    : $'
+t_rld:  db      'RLD            : $'
+t_neg:  db      'NEG            : $'
+t_daa:  db      'DAA            : $'
+t_adcsbc: db    'ADC/SBC HL     : $'
+t_ireg: db      'LD I,A / A,I   : $'
+t_ixh:  db      'undoc LD IXH,n : $'
+t_sll:  db      'undoc SLL      : $'
+t_rreg: db      'R register     : $'
+t_iyl:  db      'undoc IYL ops  : $'
+t_ddcb: db      'undoc DDCB->r  : $'
+t_edneg: db     'undoc ED 4C NEG: $'
+t_ednop: db     'undoc ED 00 NOP: $'
+t_ddign: db     'DD ignored     : $'
+t_sllhl: db     'undoc SLL (HL) : $'
+
+src:    db      'ABCDE'
+buf:    ds      8
+
+        end
