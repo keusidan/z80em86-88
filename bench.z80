@@ -1,0 +1,27 @@
+; bench.z80 - Z80 speed benchmark for the emulator (CP/M .COM)
+;   20 x 65536 loops of a typical 7 instruction mix (about 1.4M instructions)
+; keep this file ASCII only: DOS EDIT cannot show UTF-8
+
+BDOS    equ     5
+PRSTR   equ     9
+
+        org     100h
+
+        ld      b,20
+outer:  ld      de,0            ; 65536 loops (DE wraps from 0)
+        ld      hl,0
+inner:  ld      a,(hl)
+        add     a,c
+        inc     hl
+        dec     de
+        ld      a,d
+        or      e
+        jr      nz,inner
+        djnz    outer
+        ld      de,m_done
+        ld      c,PRSTR
+        jp      BDOS
+
+m_done: db      'bench done',13,10,'$'
+
+        end

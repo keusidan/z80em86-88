@@ -1,0 +1,5 @@
+device conout:=crt2
+dostocpm c:\bench.z80 c: /f
+zmac bench.z80
+zml bench
+bench

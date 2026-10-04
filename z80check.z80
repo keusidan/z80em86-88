@@ -204,6 +204,20 @@ t17:    ld      de,t_ddcb
         ld      de,t_sllhl
         call    result
 
+; 22. CPIR with BC = 0 searches up to 65536 bytes: 'C' is 3rd -> BC = 0FFFDh
+        ld      hl,src
+        ld      bc,0
+        ld      a,'C'
+        cpir
+        jr      nz,t22
+        ld      a,b
+        cp      0FFh
+        jr      nz,t22
+        ld      a,c
+        cp      0FDh
+t22:    ld      de,t_cpir0
+        call    result
+
         ret                     ; back to CCP
 
 ; RESULT: print name at DE, then OK (Z=1) or NG (Z=0)
@@ -241,6 +255,7 @@ t_edneg: db     'undoc ED 4C NEG: $'
 t_ednop: db     'undoc ED 00 NOP: $'
 t_ddign: db     'DD ignored     : $'
 t_sllhl: db     'undoc SLL (HL) : $'
+t_cpir0: db     'CPIR BC=0      : $'
 
 src:    db      'ABCDE'
 buf:    ds      8

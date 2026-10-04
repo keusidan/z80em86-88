@@ -8,6 +8,7 @@ Changes:
   ED duplicates, other ED xx run as NOP.
 * LD I,A keeps all 8 bits of I.
 * R register counts opcode fetches (M1); bit 7 is kept from LD R,A.
+* LDIR/LDDR/CPIR/CPDR with BC = 0 repeat 65536 times.
 
 9 March 2011 - SJK
 ------------------

@@ -10,6 +10,10 @@
 ;===============================================================================
 ; ChangeLog (most recent entries are at top)
 ;===============================================================================
+; z80em86-88 - 5 October 2026
+; - LDIR/LDDR/CPIR/CPDR: BC = 0 repeats 65536 times as on a real Z80
+;   (REP with CX = 0 did nothing).
+;
 ; v1.0.0 - 10 February 2009, S.J.Kay
 ; - Convert sources from TASM to NASM format and prepare for GPL release.
 ; - Changed all uses of 'Z80' map segment to 'es:Z80'
@@ -150,13 +154,18 @@ Z_LDIR:
         push    es
         pop     ds
         cld
+        jcxz    ldir64                  ;BC = 0 means 65536 bytes
 rep     movsb                           ;move memory
-        pop     ds
+ldir64e: pop     ds
         mov     bx,si
         mov     dx,di
         and     ah,11101011b
         mov     BYTE [FlagN],0
         XinstB
+ldir64:  movsb                           ;1st byte, then BC = 0FFFFh
+        dec     cx
+rep     movsb
+        jmp     ldir64e
 
 ;***********************************************************
 ;*      LDD                      Flags: S Z - H - P/V N C  *
@@ -188,13 +197,18 @@ Z_LDDR:
         push    es
         pop     ds
         std
+        jcxz    lddr64                  ;BC = 0 means 65536 bytes
 rep     movsb                           ;move memory
-        pop     ds
+lddr64e: pop     ds
         mov     bx,si
         mov     dx,di
         and     ah,11101011b
         mov     BYTE [FlagN],0
         XinstB
+lddr64:  movsb                           ;1st byte, then BC = 0FFFFh
+        dec     cx
+rep     movsb
+        jmp     lddr64e
 
 ;***********************************************************
 ;*      CPI                      Flags: S Z - H - P/V N C  *
@@ -226,14 +240,20 @@ Z_CPIR:
         mov     BYTE [FlagN],2
         mov     di,bx                   ;Z80 HL to DI reg
         cld
+        jcxz    cpir64                  ;BC = 0 means up to 65536 bytes
 repne   scasb                           ;repeat until CX=0 or A=(HL)
-        mov     bx,di                   ;DI reg TO Z80 HL
+cpir64e: mov     bx,di                   ;DI reg TO Z80 HL
         lahf
         and     ah,11111010b            ;lose the carry and parity flag
         or      ah,[tempb1]             ;and replace with old carry flag
         jcxz    cpir
         or      ah,00000100b            ;set parity flag (BC <> 0)
 cpir:   XinstB
+cpir64:  scasb                           ;1st compare, then BC = 0FFFFh
+        mov     cx,0ffffh               ;MOV keeps the compare flags
+        je      cpir64e
+repne   scasb
+        jmp     cpir64e
 
 ;***********************************************************
 ;*      CPD                      Flags: S Z - H - P/V N C  *
@@ -265,13 +285,19 @@ Z_CPDR:
         mov     BYTE [FlagN],2
         mov     di,bx                   ;Z80 HL to DI reg
         std
+        jcxz    cpdr64                  ;BC = 0 means up to 65536 bytes
 repne   scasb                           ;repeat until CX=0 or A=(HL)
-        mov     bx,di                   ;DI reg TO Z80 HL
+cpdr64e: mov     bx,di                   ;DI reg TO Z80 HL
         lahf
         and     ah,11111010b            ;lose the carry and parity flag
         or      ah,[tempb1]             ;and replace with old carry flag
         jcxz    cpdr
         or      ah,00000100b            ;set parity flag (BC <> 0)
 cpdr:   XinstB
+cpdr64:  scasb                           ;1st compare, then BC = 0FFFFh
+        mov     cx,0ffffh               ;MOV keeps the compare flags
+        je      cpdr64e
+repne   scasb
+        jmp     cpdr64e
 
         end
