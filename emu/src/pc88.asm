@@ -72,7 +72,6 @@ port32  db      0
 port40  db      0
 port52  db      0
 port53  db      0
-palrgb  times 8 db 0                    ;palette: EGA rgbRGB value per color
 grmode  db      0                       ;EGA graphics mode is on
 redraw  db      0                       ;draw the graphics at the next opcode
 gvseg   dw      0                       ;4 x 16K: blue, red, green, main RAM
@@ -296,15 +295,16 @@ i5c:    mov     al,0f8h
         jmp     inret
 
 ;===============================================================================
-; Palette. EGA palette register value: bits 0-2 = B G R (2/3), bits 3-5 =
-; b g r (1/3). A 2 bit level L of a color gives (L >> 1) primary, L & 1
-; secondary... computed by egalvl.
+; Palette. Kept as 3 bit levels (0-7) of B R G per color and written to the
+; VGA DAC (6 bit, level * 9). EGA palette registers can not show pure 88
+; colors in the 200 line mode 0Eh (CGA style RGB + intensity), the DAC can.
+; Attribute palette register i is set to i, so DAC entry i = 88 color i.
 ;   paldig: BL = number, AL = digital value (bit 0 B, 1 R, 2 G)
 ;   palana: BL = number, AL = analog value (port 32h bit 5 = 1)
 ;===============================================================================
-anab    times 8 db 0                    ;analog levels 0-7 per palette
-anar    times 8 db 0
-anag    times 8 db 0
+palb    times 8 db 0
+palr    times 8 db 0
+palg    times 8 db 0
 
 paldig: push    ax
         push    bx
@@ -312,15 +312,19 @@ paldig: push    ax
         mov     ah,al
         xor     al,al
         test    ah,00000001b
+        jz      pdb
+        mov     al,7
+pdb:    mov     [palb+bx],al
+        xor     al,al
+        test    ah,00000010b
         jz      pdr
-        or      al,00001001b            ;blue full
-pdr:    test    ah,00000010b
+        mov     al,7
+pdr:    mov     [palr+bx],al
+        xor     al,al
+        test    ah,00000100b
         jz      pdg
-        or      al,00100100b            ;red full
-pdg:    test    ah,00000100b
-        jz      pdset
-        or      al,00010010b            ;green full
-pdset:  mov     [palrgb+bx],al
+        mov     al,7
+pdg:    mov     [palg+bx],al
         call    palset
         pop     bx
         pop     ax
@@ -333,55 +337,44 @@ palana: push    ax
         jnz     pagrn
         mov     ah,al
         and     ah,00000111b
-        mov     [anab+bx],ah
+        mov     [palb+bx],ah
         shr     al,1
         shr     al,1
         shr     al,1
         and     al,00000111b
-        mov     [anar+bx],al
-        jmp     pamake
+        mov     [palr+bx],al
+        jmp     paset
 pagrn:  and     al,00000111b
-        mov     [anag+bx],al
-pamake: xor     al,al                   ;3 bit level -> EGA 2 bit level
-        mov     ah,[anab+bx]
-        shr     ah,1                    ;0-3
-        test    ah,2
-        jz      pab1
-        or      al,00000001b
-pab1:   test    ah,1
-        jz      par
-        or      al,00001000b
-par:    mov     ah,[anar+bx]
-        shr     ah,1
-        test    ah,2
-        jz      par1
-        or      al,00000100b
-par1:   test    ah,1
-        jz      pag
-        or      al,00100000b
-pag:    mov     ah,[anag+bx]
-        shr     ah,1
-        test    ah,2
-        jz      pag1
-        or      al,00000010b
-pag1:   test    ah,1
-        jz      paset
-        or      al,00010000b
-paset:  mov     [palrgb+bx],al
-        call    palset
+        mov     [palg+bx],al
+paset:  call    palset
         pop     bx
         pop     ax
         retn
 
-; set EGA palette register BL to [palrgb+BL] when in graphics mode
+; write DAC entry BL from the levels (only when in graphics mode)
 palset: cmp     BYTE [grmode],0
         jz      palsno
         push    ax
         push    bx
+        push    cx
+        push    dx
         xor     bh,bh
-        mov     bh,[palrgb+bx]
-        mov     ax,1000h                ;set palette register
+        mov     al,[palr+bx]
+        mov     ah,9
+        mul     ah
+        mov     dh,al                   ;red 0-63
+        mov     al,[palg+bx]
+        mov     ah,9
+        mul     ah
+        mov     ch,al                   ;green
+        mov     al,[palb+bx]
+        mov     ah,9
+        mul     ah
+        mov     cl,al                   ;blue
+        mov     ax,1010h                ;set one DAC register (BX)
         int     10h
+        pop     dx
+        pop     cx
         pop     bx
         pop     ax
 palsno: retn
@@ -406,7 +399,11 @@ grupd:  push    ax
         int     10h
         mov     BYTE [grmode],1
         xor     bx,bx
-grpal:  call    palset                  ;load the 8 palette registers
+grpal:  mov     bh,bl                   ;attribute palette i = DAC i
+        mov     ax,1000h
+        int     10h
+        xor     bh,bh
+        call    palset                  ;DAC i = 88 color i
         inc     bl
         cmp     bl,8
         jb      grpal

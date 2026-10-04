@@ -24,7 +24,8 @@ Changes:
   level * 2), block I/O (INI..OTDR). Behaviour follows MAME.
 * 88 mode GVRAM: ports 5Ch-5Fh put the blue/red/green plane (or main RAM)
   at C000h-FFFFh, port 31h bit 3 shows the 640 x 200 graphics in EGA mode
-  0Eh (drawn at every VRTC), palette ports 54h-5Bh (digital and analog),
+  0Eh (drawn at every VRTC), palette ports 54h-5Bh (digital and analog,
+  written to the VGA DAC for exact colors),
   plane mask port 53h. The 64K store is allocated before the RAM disk.
 
 9 March 2011 - SJK

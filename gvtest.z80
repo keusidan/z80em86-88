@@ -1,7 +1,7 @@
 ; gvtest.z80 - PC-8801 style GVRAM in z80em86 88 mode (CP/M .COM)
 ;   Draws 8 color bars (80 dots each) with the 3 planes at C000h, checks
-;   the planes by reading them back, shows the graphics for 3 seconds
-;   (180 VRTC from port 40h), then prints the number of read errors.
+;   the planes by reading them back, shows the graphics for 10 seconds
+;   (600 VRTC from port 40h), then prints the number of read errors.
 ; The stack must be below C000h: GVRAM replaces C000h-FFFFh (as on the
 ; PC-8801), and CP/M puts the stack at the top of the TPA.
 ; keep this file ASCII only: DOS EDIT cannot show UTF-8
@@ -92,7 +92,7 @@ cok:    push    hl
 
         ld      a,39h           ; 31h: graphics on, color, 200 lines
         out     (31h),a
-        ld      bc,180          ; 3 seconds of VRTC
+        ld      bc,600          ; 10 seconds of VRTC
 wv0:    in      a,(40h)         ; wait for VRTC = 0
         and     20h
         jr      nz,wv0
