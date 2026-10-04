@@ -11,6 +11,7 @@
 ; ChangeLog (most recent entries are at top)
 ;===============================================================================
 ; z80em86-88 - 5 October 2026
+; - XINLINE: opcode fetch/dispatch inlined for speed.
 ; - LDIR/LDDR/CPIR/CPDR: BC = 0 repeats 65536 times as on a real Z80
 ; - LDIR/LDDR/CPIR/CPDR count 21T for each repeat (tblk in TIMER.ASM).
 ;   (REP with CX = 0 did nothing).
@@ -62,6 +63,7 @@ EXTERN  FlagN, FlagNx
 ; declared in TIMER.ASM
 EXTERN  tblk, tblkn
 
+%define XINLINE                 ;inline opcode fetch (MACROS.ASM)
 %include "macros.asm"
 
 tempb1  resb	1

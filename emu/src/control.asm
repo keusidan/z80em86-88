@@ -11,6 +11,7 @@
 ; ChangeLog (most recent entries are at top)
 ;===============================================================================
 ; z80em86-88 - 5 October 2026
+; - XINLINE: opcode fetch/dispatch inlined for speed.
 ; - DI/EI set IFF1 and IFF2, EI delays interrupts by one opcode.
 ; - IM 0/1/2 set the interrupt mode (they stopped the emulator).
 ; - HALT waits for an interrupt when IFF1 = 1 (stops only after DI).
@@ -64,6 +65,7 @@ EXTERN  IFF, FlagN
 ; declared in TIMER.ASM
 EXTERN  IFF1, eidly, halted, imode, tforce
 
+%define XINLINE                 ;inline opcode fetch (MACROS.ASM)
 %include "macros.asm"
 
 ;***********************************************************

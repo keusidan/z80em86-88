@@ -11,6 +11,7 @@
 ; ChangeLog (most recent entries are at top)
 ;===============================================================================
 ; z80em86-88 - 5 October 2026
+; - XINLINE: opcode fetch/dispatch inlined for speed.
 ; - JR cc / DJNZ count the extra T-states when taken.
 ;
 ; v1.0.0 - 10 February 2009, S.J.Kay
@@ -60,6 +61,7 @@ GLOBAL	Z_DJNZ
 ; declared in INSTHAND.ASM
 EXTERN  Z80IX, Z80IY
 
+%define XINLINE                 ;inline opcode fetch (MACROS.ASM)
 %include "macros.asm"
 
 ;***********************************************************

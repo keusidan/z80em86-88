@@ -15,7 +15,8 @@
 #              default: 0 (テストを速く終わらせるため)
 # 例: scripts/cpm-run.sh scripts/z80check.sub
 #     CYCLES="fixed 20000" scripts/cpm-run.sh scripts/bench.sub
-# 終了コード: 0=正常, 124=タイムアウト (z80em86 がダイアログで止まった可能性)
+# 終了コード: 0=正常, 124=タイムアウト (z80em86 がダイアログで止まった可能性)。
+#   タイムアウト時は DOSBox の画面を build/capture/ に撮ってから終了させる
 set -eu
 
 sub=${1:?usage: $0 <file.sub> [conf] [timeout_sec]}
@@ -35,17 +36,52 @@ rm -f "$root/$OUT" "$root/$out"
 # DOS 側のパスは C:\ がプロジェクトのルート。/ を \ に置き換える
 dossub=$(printf '%s' "$sub" | tr '/' '\\')
 
-rc=0
-# Flatpak のラッパー (dosbox-x) を timeout で止めてもサンドボックス内の本体が
-# 残るので、--die-with-parent で親と一緒に終了させる
+# Flatpak のラッパー (dosbox-x) を止めてもサンドボックス内の本体が残るので、
+# --die-with-parent で親と一緒に終了させる
 DOSBOX="flatpak run --branch=stable --arch=x86_64 --die-with-parent com.dosbox_x.DOSBox-X"
-
 mkdir -p "$root/build/capture"            # F12+P のスクリーンショットの保存先
-timeout "$limit" $DOSBOX -fastlaunch -conf "$root/$conf" -set "cpu cycles=$cycles" \
+
+# 制限時間を過ぎても終わらないとき (ダイアログで止まったときなど) は、この
+# script が起動した DOSBox-X のウィンドウだけを DOSBox-X 自身の機能 (F12+P)
+# で撮影してから終了させる。画面全体は撮らない、ほかのウィンドウには触れない
+# (scripts/dosbox-shot.sh と同じ制約)
+wins() { xdotool search --class '^dosbox-x$' 2>/dev/null | sort || true; }
+have_xdo=0
+command -v xdotool >/dev/null && have_xdo=1
+[ $have_xdo = 1 ] && wins > "$root/build/capture/.run-before-$$"
+
+rc=0
+$DOSBOX -fastlaunch -conf "$root/$conf" -set "cpu cycles=$cycles" \
 	-set "dosbox captures=$root/build/capture" \
 	-set "sdl windowposition=${WINPOS:-1800,40}" \
 	-c "mount c $root" -c "c:" -c "cd \\$emudir" -c "set Z80SPEED=$speed" \
-	-c "z80em86 c:\\$dossub > c:\\build\\$name.txt" -c "exit" >/dev/null 2>&1 || rc=$?
+	-c "z80em86 c:\\$dossub > c:\\build\\$name.txt" -c "exit" >/dev/null 2>&1 &
+pid=$!
+t=0                                      # 0.1 秒単位 (時間計測の分解能)
+while kill -0 $pid 2>/dev/null && [ $t -lt $((limit * 10)) ]; do
+	sleep 0.1
+	t=$((t + 1))
+done
+if kill -0 $pid 2>/dev/null; then
+	rc=124
+	if [ $have_xdo = 1 ]; then
+		new=$(wins | comm -13 "$root/build/capture/.run-before-$$" -)
+		if [ "$(printf '%s' "$new" | grep -c .)" -eq 1 ] &&
+			xprop -id "$new" WM_CLASS 2>/dev/null | grep -q '"dosbox-x", "dosbox-x"'; then
+			touch "$root/build/capture/.run-mark-$$"
+			xdotool key --window "$new" F12+p
+			sleep 1
+			find "$root/build/capture" -newer "$root/build/capture/.run-mark-$$" \
+				-type f ! -name '.*' | sed 's/^/cpm-run: screenshot /' >&2
+		fi
+	fi
+	kill $pid 2>/dev/null || true
+	sleep 1
+	kill -9 $pid 2>/dev/null || true
+else
+	wait $pid || rc=$?
+fi
+rm -f "$root/build/capture/.run-before-$$" "$root/build/capture/.run-mark-$$"
 
 # DOS が作るファイル名は大文字になる
 for f in "$root/$OUT" "$root/$out"; do

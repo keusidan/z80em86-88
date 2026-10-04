@@ -13,6 +13,8 @@
 # Add undoc.obj (undocumented Z80 instructions).
 # Add timer.obj (real time speed, interrupts) and timing.obj (T-states).
 # Add pc88.obj (PC-8801 style I/O ports, 88 mode).
+# Link order keeps insthand/timer in the middle (ALINK 32K jump limit), and
+# the build fails when ALINK reports an error.
 #
 # v1.0.0 - S.J.Kay 13/2/2009
 # --------------------------
@@ -52,11 +54,16 @@ APPVER=\"$(VERSION)\"
 APPIDSTR=\"$(APP)\"
 
 # Object files
-OBJA=./arith16.obj ./bit.obj ./control.obj ./function.obj ./insthand.obj
-OBJA+=./jump.obj ./load8.obj ./main.obj ./rotate.obj ./table.obj ./window.obj
-OBJA+=./arith8.obj ./call.obj ./exchange.obj ./hardware.obj ./io.obj ./load16.obj
+# Link order: insthand (DispA-DispD), timer (Tslow) and pc88 sit in the middle of
+# the code segment. ALINK rejects near jumps further than 32K ("Reloc out of
+# range") and leaves them unpatched, and the handlers jump to these from
+# everywhere.
+OBJA=./arith16.obj ./bit.obj ./control.obj ./function.obj ./jump.obj
+OBJA+=./load8.obj ./main.obj ./rotate.obj ./arith8.obj
+OBJA+=./insthand.obj ./timer.obj ./pc88.obj ./table.obj ./window.obj
+OBJA+=./call.obj ./exchange.obj ./hardware.obj ./io.obj ./load16.obj
 OBJA+=./macros.obj ./res.obj ./set.obj ./video.obj ./undoc.obj
-OBJA+=./timer.obj ./timing.obj ./pc88.obj
+OBJA+=./timing.obj
 
 # Dependencies
 DEPENDENCIES=macros.asm io88.inc Makefile
@@ -91,7 +98,10 @@ ALIB=
 ADEF=-DAPPVER=$(APPVER) -DAPPIDSTR=$(APPIDSTR)
 
 build/$(APP).exe: $(LINK) $(XOBJA) $(Z80HDD)
-	$(LINK) $(XOBJA) -o build/$(APP).exe -m
+	$(LINK) $(XOBJA) -o build/$(APP).exe -m > build/alink.log; \
+	status=$$?; cat build/alink.log; \
+	if grep -q "^Error" build/alink.log; then rm -f build/$(APP).exe; exit 1; fi; \
+	exit $$status
 
 build/%.obj: %.asm $(DEPENDENCIES)
 	@[ -d build ] || mkdir build

@@ -10,6 +10,9 @@
 ;===============================================================================
 ; ChangeLog (most recent entries are at top)
 ;===============================================================================
+; z80em86-88 - 5 October 2026
+; - XINLINE: opcode fetch/dispatch inlined for speed.
+;
 ; v1.0.0 - 10 February 2009, S.J.Kay
 ; - Convert sources from TASM to NASM format and prepare for GPL release.
 ; - Added 'align=16' to all SEGMENT declarations. (nasm def is align=1)
@@ -61,6 +64,7 @@ GLOBAL	Z_ADhlbc, Z_ADhlde, Z_ADhlhl, Z_ADhlsp
 ; declared in INSTHAND.ASM
 EXTERN  Z80IX, Z80IY, Z80SP, FlagN
 
+%define XINLINE                 ;inline opcode fetch (MACROS.ASM)
 %include "macros.asm"
 
 ;***********************************************************

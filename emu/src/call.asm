@@ -11,6 +11,7 @@
 ; ChangeLog (most recent entries are at top)
 ;===============================================================================
 ; z80em86-88 - 5 October 2026
+; - XINLINE: opcode fetch/dispatch inlined for speed.
 ; - RETN/RETI return and copy IFF2 to IFF1 (they stopped the emulator).
 ; - CALL cc / RET cc count the extra T-states when taken.
 ;
@@ -68,6 +69,7 @@ EXTERN  Z80SP, IFF
 ; declared in TIMER.ASM
 EXTERN  IFF1
 
+%define XINLINE                 ;inline opcode fetch (MACROS.ASM)
 %include "macros.asm"
 
 ;***********************************************************

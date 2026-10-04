@@ -13,6 +13,7 @@
 ; z80em86-88 - 5 October 2026
 ; - Xinst macros jump to the shared dispatch code DispA-DispD (INSTHAND.ASM),
 ;   which also counts T-states (TC0) and enters Tslow (TIMER.ASM).
+; - XINLINE: inline fetch/dispatch for the files with the frequent opcodes.
 ; - Xinst macros increment R on every opcode fetch (M1).
 ;
 ; v1.0.0 - 10 February 2009, S.J.Kay
@@ -60,6 +61,89 @@ EXTERN  tleft                           ;T-states left (TIMER.ASM)
 %endif
 %endif
 
+%ifdef XINLINE
+; Files that hold the frequent unprefixed opcodes define XINLINE: the fetch
+; and dispatch code is inlined there (one JMP less per opcode, the code
+; segment still has room for it). Same code as DispA-DispD in INSTHAND.ASM.
+EXTERN  T0, TC0, Tslow
+%ifndef INSTHAND
+EXTERN  Z80R
+%endif
+
+%MACRO	XinstA	0
+        lahf                            ;get Z80 reg F into reg ah
+        mov     si,ax                   ;save Z80 regs A and F
+        inc     BYTE [Z80R]             ;reg R counts opcode fetches (M1)
+        xor     ah,ah
+        mov     al,[es:Z80+bp]          ;get Z80 opcode
+        mov     di,ax
+        shl     di,1                    ;T0 instruction table offset
+        inc     bp                      ;next Z80 PC
+        mov     ax,[TC0+di]             ;T-states of this opcode
+        sub     [tleft],ax
+        jns     %%run
+        jmp     Tslow                   ;budget used up or interrupt request
+%%run:  mov     ax,si                   ;restore Z80 reg A and F
+        sahf                            ;set 8086 Flags with Z80 reg F (ah)
+        jmp     WORD [T0+di]
+        %ENDMACRO
+
+%MACRO	XinstB	0
+        mov     si,ax                   ;save Z80 regs A and F
+        inc     BYTE [Z80R]             ;reg R counts opcode fetches (M1)
+        xor     ah,ah
+        mov     al,[es:Z80+bp]          ;get Z80 opcode
+        mov     di,ax
+        shl     di,1                    ;T0 instruction table offset
+        inc     bp                      ;next Z80 PC
+        mov     ax,[TC0+di]             ;T-states of this opcode
+        sub     [tleft],ax
+        jns     %%run
+        jmp     Tslow                   ;budget used up or interrupt request
+%%run:  mov     ax,si                   ;restore Z80 reg A and F
+        sahf                            ;set 8086 Flags with Z80 reg F (ah)
+        jmp     WORD [T0+di]
+        %ENDMACRO
+
+%MACRO	XinstC	0
+        lahf
+        and     ah,11111011b            ;reset P/V to indicate no overflow
+        mov     si,ax                   ;save Z80 regs A and F
+        inc     BYTE [Z80R]             ;reg R counts opcode fetches (M1)
+        xor     ah,ah
+        mov     al,[es:Z80+bp]          ;get Z80 opcode
+        mov     di,ax
+        shl     di,1                    ;T0 instruction table offset
+        inc     bp                      ;next Z80 PC
+        mov     ax,[TC0+di]             ;T-states of this opcode
+        sub     [tleft],ax
+        jns     %%run
+        jmp     Tslow                   ;budget used up or interrupt request
+%%run:  mov     ax,si                   ;restore Z80 reg A and F
+        sahf                            ;set 8086 Flags with Z80 reg F (ah)
+        jmp     WORD [T0+di]
+        %ENDMACRO
+
+%MACRO	XinstD	0
+        lahf
+        or      ah,00000100b            ;set P/V to indicate overflow
+        mov     si,ax                   ;save Z80 regs A and F
+        inc     BYTE [Z80R]             ;reg R counts opcode fetches (M1)
+        xor     ah,ah
+        mov     al,[es:Z80+bp]          ;get Z80 opcode
+        mov     di,ax
+        shl     di,1                    ;T0 instruction table offset
+        inc     bp                      ;next Z80 PC
+        mov     ax,[TC0+di]             ;T-states of this opcode
+        sub     [tleft],ax
+        jns     %%run
+        jmp     Tslow                   ;budget used up or interrupt request
+%%run:  mov     ax,si                   ;restore Z80 reg A and F
+        sahf                            ;set 8086 Flags with Z80 reg F (ah)
+        jmp     WORD [T0+di]
+        %ENDMACRO
+
+%else
 ; F from the 8086 flags
 %MACRO	XinstA	0
         jmp     DispA
@@ -79,3 +163,4 @@ EXTERN  tleft                           ;T-states left (TIMER.ASM)
 %MACRO	XinstD	0
         jmp     DispD
         %ENDMACRO
+%endif

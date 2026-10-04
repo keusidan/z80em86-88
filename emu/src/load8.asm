@@ -11,6 +11,7 @@
 ; ChangeLog (most recent entries are at top)
 ;===============================================================================
 ; z80em86-88 - 5 October 2026
+; - XINLINE: opcode fetch/dispatch inlined for speed.
 ; - LD I,A: keep all 8 bits of I (bit 0 was cleared).
 ; - LD A,R / LD R,A: R counts opcode fetches, bit 7 kept from LD R,A.
 ;
@@ -75,6 +76,7 @@ GLOBAL	Z_LDab, Z_LDac, Z_LDad, Z_LDae, Z_LDah, Z_LDal, Z_LDaz, Z_LDaa
 EXTERN  Z80IX, Z80IY, Z80I, Z80R, Z80R7
 EXTERN  IFF,   FlagN
 
+%define XINLINE                 ;inline opcode fetch (MACROS.ASM)
 %include "macros.asm"
 
 ;***********************************************************

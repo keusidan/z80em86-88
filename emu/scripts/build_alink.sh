@@ -25,6 +25,7 @@
 # package_directory.
 #
 # SJK 14 Feb 09
+# z80em86-88 5 Oct 2026: patch output.c, near fixups wrap in the 64K segment
 
 APP_DIR=$1
 URL=$3
@@ -94,6 +95,11 @@ if [ "$TESTSTR" = "" ]; then
    echo "$0 : Error - this script is only intended for v1.6 of ALINK"
    exit 1
 fi   
+
+# z80em86-88 (5 Oct 2026): 16 bit self-relative fixups (near JMP/CALL) wrap
+# inside the 64K segment, as the 8086 IP does. ALINK rejected distances over
+# 32K ("Reloc out of range") and left those jumps unpatched in the EXE.
+sed -i 's/if((j<-32768)||(j>32767))/if((j<-65535)||(j>65535))/' output.c
 
 # Create a new Makefile for Unix (note escaped dollar characters)
 rm Makefile_unix

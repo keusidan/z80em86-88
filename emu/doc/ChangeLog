@@ -27,6 +27,11 @@ Changes:
   0Eh (drawn at every VRTC), palette ports 54h-5Bh (digital and analog,
   written to the VGA DAC for exact colors),
   plane mask port 53h. The 64K store is allocated before the RAM disk.
+* The opcode fetch/dispatch is inlined again in the files with the frequent
+  unprefixed opcodes (XINLINE), about 5% faster.
+* ALINK (built by scripts/build_alink.sh) is patched: near JMP/CALL fixups
+  wrap inside the 64K segment like the 8086 IP. ALINK rejected distances
+  over 32K and left them unpatched; the build now fails on ALINK errors.
 * 88 mode keyboard: ports 00h-0Bh read a PC-8801 keyboard matrix that the
   INT 09h handler fills from the PC scan codes (matrix as in MAME).
 
