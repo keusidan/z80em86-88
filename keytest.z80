@@ -1,0 +1,77 @@
+; keytest.z80 - PC-8801 style keyboard matrix in z80em86 88 mode (CP/M .COM)
+;   For 5 seconds (300 VRTC) reads ports 00h-0Bh and prints "pp=vv" each
+;   time a port value changes (bit = 0 while a key is down).
+; keep this file ASCII only: DOS EDIT cannot show UTF-8
+
+BDOS    equ     5
+
+        ld      sp,stack
+        out     (0E0h),a        ; z80em86: 88 mode on
+        ld      hl,old          ; start: all keys up
+        ld      b,12
+init:   ld      (hl),0FFh
+        inc     hl
+        djnz    init
+        ld      de,300          ; frames
+frame:  push    de
+        ld      c,0             ; port 00h-0Bh
+port:   ld      b,0
+        in      a,(c)           ; IN A,(C): port C
+        ld      hl,old
+        add     hl,bc
+        cp      (hl)
+        jr      z,same
+        ld      (hl),a
+        push    bc
+        push    af
+        ld      a,c
+        call    prhex
+        ld      e,'='
+        call    prchr
+        pop     af
+        call    prhex
+        ld      e,' '
+        call    prchr
+        pop     bc
+same:   inc     c
+        ld      a,c
+        cp      12
+        jr      nz,port
+vw0:    in      a,(40h)         ; one VRTC
+        and     20h
+        jr      nz,vw0
+vw1:    in      a,(40h)
+        and     20h
+        jr      z,vw1
+        pop     de
+        dec     de
+        ld      a,d
+        or      e
+        jr      nz,frame
+        ld      e,13
+        call    prchr
+        ld      e,10
+        call    prchr
+        jp      0
+
+prhex:  push    af
+        rrca
+        rrca
+        rrca
+        rrca
+        call    prnib
+        pop     af
+prnib:  and     0Fh
+        add     a,'0'
+        cp      '9'+1
+        jr      c,prn1
+        add     a,7
+prn1:   ld      e,a
+prchr:  ld      c,2
+        jp      BDOS
+
+old:    ds      12
+        ds      64
+stack:
+
+        end

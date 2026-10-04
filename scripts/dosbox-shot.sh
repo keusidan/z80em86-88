@@ -5,6 +5,9 @@
 #   delay    : DOSBox-X のウィンドウが出てから最初に撮るまでの秒数
 #   count    : 撮影回数 (default 1)、interval: 撮影の間隔 (default 1)
 #   環境変数 (Z80SPEED, EMUDIR, OUTNAME, CYCLES) は cpm-run.sh にそのまま渡る
+#   SENDKEYS : 環境変数。delay のあと、撮影の前にこのウィンドウへ送るキー
+#              (xdotool のキー名を空白区切り。例: "a shift+b Up")。count=0 なら
+#              キーだけ送って撮影しない
 # 例: Z80SPEED=4 EMUDIR=build/emutest OUTNAME=emutest \
 #       scripts/dosbox-shot.sh build/rung.sub 6
 #
@@ -14,7 +17,8 @@
 #   - キーを送る相手は「この script が起動した DOSBox-X のウィンドウ」だけ。
 #     起動前からあったウィンドウには触れない。新しいウィンドウがちょうど 1 つで
 #     ないときは何もしないで中止する
-#   - 送るキーは F12+P だけ
+#   - 送るキーは F12+P と、呼び出し側が SENDKEYS で明示したキーだけ。
+#     SENDKEYS も --window でこのウィンドウにだけ送る (前面化はしない)
 #   - キーを送る直前に、そのウィンドウの WM_CLASS が dosbox-x であることを確認する
 #   - 前面化 (windowactivate) が必要なときは、前面化のあとで前面のウィンドウが
 #     対象と一致することを確かめてから送る。一致しなければ送らずに中止する
@@ -85,6 +89,13 @@ shot() {
 }
 
 sleep "$delay"
+if [ -n "${SENDKEYS:-}" ]; then
+	is_dosbox "$target" || die "対象が DOSBox-X ではありません。中止します"
+	for key in $SENDKEYS; do
+		xdotool key --window "$target" --delay 150 "$key"
+		sleep 0.3
+	done
+fi
 k=0
 while [ $k -lt "$count" ]; do
 	shot

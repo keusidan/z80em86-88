@@ -28,6 +28,8 @@
 ;          32h bit 5: bit 6 = 0 -> B bits 0-2, R bits 3-5, bit 6 = 1 -> G)
 ;     5Ch-5Fh W: C000h-FFFFh = GVRAM blue/red/green plane or main RAM
 ;          (the 16K are swapped with a copy), 5Ch R: selected plane
+;     00h-0Eh R: keyboard matrix (bit = 0 while the key is down), filled from
+;          the PC keyboard by kbmat (called from the INT 09h handler)
 ;   The graphics screen is drawn at every VRTC (60 Hz) while bit 3 of 31h is
 ;   on. The PC-8801 text layer is not emulated (CP/M console output goes to
 ;   the PC text screen, which is not shown in graphics mode).
@@ -54,7 +56,7 @@ Z80:
 SEGMENT	.code	public align=16
 
 GLOBAL  pc88, p88out, p88in, pc88on, p88wbt, pc88off
-GLOBAL  lvlmsk, intdis, grmode, redraw, grdraw, gvaloc
+GLOBAL  lvlmsk, intdis, grmode, redraw, grdraw, gvaloc, kbmat
 
 ; declared in TIMER.ASM
 EXTERN  irqpend, irqmask, tforce, tick10
@@ -76,6 +78,8 @@ grmode  db      0                       ;EGA graphics mode is on
 redraw  db      0                       ;draw the graphics at the next opcode
 gvseg   dw      0                       ;4 x 16K: blue, red, green, main RAM
 gvsel   db      3                       ;at C000h: 0-2 plane, 3 main RAM
+keymat  times 16 db 0ffh                ;PC-8801 keyboard matrix, 0 = down
+kbe0    db      0                       ;last scan code was the E0h prefix
 
 ;===============================================================================
 ; Emulator functions (OUT (n),A from the BIOS or from a program not in 88 mode)
@@ -117,6 +121,10 @@ pc88r:  cli
         mov     [port52],al
         mov     [port53],al
         call    beep                    ;AL = 0: speaker off
+        mov     bx,15                   ;no key down
+p88key: mov     BYTE [keymat+bx],0ffh
+        dec     bx
+        jns     p88key
         mov     al,3
         call    gvswap                  ;main RAM back at C000h
         call    grupd                   ;text mode (port 31h = 0)
@@ -266,6 +274,8 @@ beepst: out     61h,al
 p88in:  push    cx
         push    bx
         mov     bx,di
+        cmp     bl,10h
+        jb      ikey
         cmp     bl,40h
         jz      i40
         cmp     bl,5ch
@@ -594,3 +604,72 @@ grdnxt: mov     ax,cs
         pop     bx
         pop     ax
 grdno:  retn
+
+; 00h-0Fh: keyboard matrix
+ikey:   xor     bh,bh
+        mov     al,[keymat+bx]
+        jmp     inret
+
+;===============================================================================
+; kbmat: PC scan code AL (set 1, from port 60h) -> PC-8801 keyboard matrix.
+;   Called from the INT 09h handler (HARDWARE.ASM) with DS = CS. Keeps all
+;   registers. The PC keys go to the BIOS as before, too.
+;   Table byte = port * 8 + bit, 0FFh = no 88 key. Key choices: f1-f5 = F1-F5,
+;   STOP = F9, COPY = F10, HELP = End, ROLL UP/DOWN = PgUp/PgDn, GRPH = left
+;   Alt, KANA = right Alt, DEL/INS = BS/Ins/Del, CLR/HOME = Home
+;   (F11/F12 are used by DOSBox-X). Matrix from MAME pc88_kbd.cpp.
+;===============================================================================
+kbmat:  push    ax
+        push    bx
+        push    cx
+        cmp     al,0e0h
+        jnz     kbcode
+        mov     BYTE [kbe0],1
+        jmp     kbret
+kbcode: mov     ah,al                   ;bit 7 = key up
+        and     al,01111111b
+        mov     bx,kbbase
+        cmp     BYTE [kbe0],0
+        jz      kbtab
+        mov     bx,kbext
+kbtab:  mov     BYTE [kbe0],0
+        xlatb                           ;AL = [BX + AL]
+        cmp     al,0ffh
+        jz      kbret
+        mov     cl,al
+        and     cl,00000111b
+        mov     ch,1
+        shl     ch,cl                   ;bit mask
+        mov     cl,3
+        shr     al,cl
+        xor     bh,bh
+        mov     bl,al                   ;port
+        test    ah,10000000b
+        jnz     kbup
+        not     ch
+        and     [keymat+bx],ch          ;down: bit = 0
+        jmp     kbret
+kbup:   or      [keymat+bx],ch          ;up: bit = 1
+kbret:  pop     cx
+        pop     bx
+        pop     ax
+        retn
+
+kbbase:
+        db      0ffh,04fh,031h,032h,033h,034h,035h,036h,037h,038h,039h,030h,02fh,02eh,043h,050h
+        db      021h,027h,015h,022h,024h,029h,025h,019h,01fh,020h,010h,02bh,00fh,047h,011h,023h
+        db      014h,016h,017h,018h,01ah,01bh,01ch,03bh,03ah,03fh,046h,02dh,02ah,028h,013h,026h
+        db      012h,01eh,01dh,03ch,03dh,03eh,046h,00ah,044h,04eh,057h,049h,04ah,04bh,04ch,04dh
+        db      0ffh,0ffh,0ffh,048h,054h,0ffh,0ffh,007h,008h,009h,055h,004h,005h,006h,00bh,001h
+        db      002h,003h,000h,00eh,0ffh,0ffh,02ch,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh
+        db      0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh
+        db      0ffh,0ffh,0ffh,03fh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,02ch,0ffh,0ffh
+kbext:
+        db      0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh
+        db      0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,00fh,047h,0ffh,0ffh
+        db      0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh
+        db      0ffh,0ffh,0ffh,0ffh,0ffh,056h,0ffh,0ffh,045h,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh
+        db      0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,040h,041h,058h,0ffh,052h,0ffh,042h,0ffh,053h
+        db      051h,059h,043h,043h,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh
+        db      0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh
+        db      0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh,0ffh

@@ -14,6 +14,7 @@
 ;===============================================================================
 ; z80em86-88 - 5 October 2026
 ; - Export cdebnk, memsze, Z80bk1 (88 mode: TPA check, GVRAM at C000h).
+; - INT 09h handler also updates the 88 mode keyboard matrix (kbmat).
 ;
 ; v1.0.0 - 16 February 2009, S.J.Kay
 ; - Convert sources from TASM to NASM format and prepare for GPL release.
@@ -73,6 +74,7 @@ GLOBAL	newkbd, oldkbd
 
 GLOBAL	HrdFle, Handle
 GLOBAL	cdebnk, memsze, Z80bk1
+EXTERN  kbmat
 GLOBAL	Z80seg, Z80dma
 GLOBAL	sveoff, sveseg, sveamt, reqcpy
 
@@ -350,6 +352,7 @@ kbintr:
         mov     ds,ax
         in      al,60h                  ;read the keyboard scan code
         push    ax                      ;save the scan code
+        call    kbmat                   ;88 mode keyboard matrix (PC88.ASM)
         pushf                           ;simulate an INT call
         call    far [oldptr]
         mov     ax,0040h                ;BIOS data segment
