@@ -15,6 +15,8 @@
 ;   run the plain opcode, SLL, DDCB/FDCB copy forms, ED duplicates of
 ;   NEG/RETN/RETI/IM/LD (nn),HL/LD HL,(nn), other ED xx run as NOP.
 ;   ED 71 (OUT (C),0) still traps, as the other I/O opcodes.
+; - Emulator function E0h: 88 mode on, 86h: 88 mode off then HDD flush.
+; - ED 71: OUT (C),0 (PC-8801 port in 88 mode).
 ;
 ; v1.0.0 - 10 February 2009, S.J.Kay
 ; - Convert sources from TASM to NASM format and prepare for GPL release.
@@ -49,6 +51,10 @@ SEGMENT	.code	public align=16
 
 GLOBAL  T0, T1, T2, T3, T4, T5, T6, T7, Tx
 
+; declared in PC88.ASM (z80em86-88)
+EXTERN  pc88on, p88wbt
+; declared in IO.ASM (z80em86-88)
+EXTERN  Z_OUTc0
 ; declared in UNDOC.ASM (z80em86-88)
 EXTERN  Z_ADCxh, Z_ADCxl, Z_ADCyh, Z_ADCyl
 EXTERN  Z_ADDxh, Z_ADDxl, Z_ADDyh, Z_ADDyl
@@ -351,7 +357,7 @@ T7  dw  kbd1in,  kbd1st,  kbd1ip,  fnc___,  fnc___,  fnc___,  fnc___,  fnc___
     dw  fnc___,  fnc___,  fnc___,  fnc___,  fnc___,  fnc___,  fnc___,  fnc___
     dw  fnc___,  fnc___,  fnc___,  fnc___,  fnc___,  fnc___,  fnc___,  fnc___
     dw  fnc___,  fnc___,  fnc___,  fnc___,  fnc___,  fnc___,  fnc___,  fnc___
-    dw  rdflop,  wrflop,  rdhard,  wrhard,  GtBoot,  GtHard,  FlHard,  fnc___
+    dw  rdflop,  wrflop,  rdhard,  wrhard,  GtBoot,  GtHard,  p88wbt,  fnc___
     dw  fnc___,  fnc___,  fnc___,  fnc___,  fnc___,  fnc___,  fnc___,  fnc___
     dw  blkcnt,  blkget,  blkput,  blkfil,  fnc___,  fnc___,  fnc___,  fnc___
     dw  fnc___,  fnc___,  fnc___,  fnc___,  fnc___,  fnc___,  fnc___,  fnc___
@@ -363,7 +369,7 @@ T7  dw  kbd1in,  kbd1st,  kbd1ip,  fnc___,  fnc___,  fnc___,  fnc___,  fnc___
     dw  fnc___,  fnc___,  fnc___,  fnc___,  fnc___,  fnc___,  fnc___,  fnc___
     dw  fnc___,  fnc___,  fnc___,  fnc___,  fnc___,  fnc___,  fnc___,  fnc___
     dw  fnc___,  fnc___,  fnc___,  fnc___,  fnc___,  fnc___,  fnc___,  fnc___
-    dw  fnc___,  fnc___,  fnc___,  fnc___,  fnc___,  fnc___,  fnc___,  fnc___
+    dw  pc88on,  fnc___,  fnc___,  fnc___,  fnc___,  fnc___,  fnc___,  fnc___
     dw  fnc___,  fnc___,  fnc___,  fnc___,  fnc___,  fnc___,  fnc___,  fnc___
     dw  bnkuse,  bnksel,  bnkmve,  bnkdta,  bnkdma,  fnc___,  fnc___,  fnc___
     dw  prmsta,  prmget,  vidsta,  vidset,  usrbyt,  failed,  rstz80,  extemu
@@ -524,7 +530,7 @@ T2  dw  Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP
     dw  Z_INec,  Z_OUTce, Z_AChlde,Z_LDdem, Z_NEG,   Z_RETI,  Z_IM2,   Z_LDar
     dw  Z_INhc,  Z_OUTch, Z_SChlhl,Z_LDmhl, Z_NEG,   Z_RETN,  Z_IM0,   Z_RRD
     dw  Z_INlc,  Z_OUTcl, Z_AChlhl,Z_LDhlm, Z_NEG,   Z_RETI,  Z_IM0,   Z_RLD
-    dw  Z_INfc,  trp1__,  Z_SChlsp,Z_LDmsp, Z_NEG,   Z_RETN,  Z_IM1,   Z_NOP
+    dw  Z_INfc,  Z_OUTc0, Z_SChlsp,Z_LDmsp, Z_NEG,   Z_RETN,  Z_IM1,   Z_NOP
     dw  Z_INac,  Z_OUTca, Z_AChlsp,Z_LDspm, Z_NEG,   Z_RETI,  Z_IM2,   Z_NOP
     dw  Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP
     dw  Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP,   Z_NOP

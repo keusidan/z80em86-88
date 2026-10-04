@@ -13,6 +13,7 @@
 ; z80em86-88 - 5 October 2026
 ; - Install the 600 Hz timer (TIMER.ASM) at start, restore it at exit,
 ;   reset the timing and interrupt state with the Z80 registers.
+; - Z80 reset turns 88 mode off (PC88.ASM).
 ;
 ; v1.0.0 - 20 February 2009, S.J.Kay
 ; - Convert sources from TASM to NASM format and prepare for GPL release.
@@ -71,6 +72,7 @@ EXTERN  PrnStr, GetKey, EraScr, HdeCur
 EXTERN  bnkini, bnkres
 EXTERN  newkbd, oldkbd
 EXTERN  tmrini, tmrres, tmrrst
+EXTERN  pc88off
 EXTERN  rdflop, rdhard
 EXTERN  HrdFle, Handle
 
@@ -337,6 +339,7 @@ Z80abt: jmp     Z80ext                  ;exit the Z80 Emulator program
 
 ; Reset Z80 registers and execute Z80 code
 Z80exe: call    NEAR tmrrst             ;T-states, IFF1, IM, interrupts
+        call    NEAR pc88off            ;88 mode off, PC-8801 I/O reset
         xor     ax,ax                   ;Z80 reg   A=0
         mov     cx,ax                   ;Z80 reg  BC=0
         mov     dx,ax                   ;Z80 reg  DE=0

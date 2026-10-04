@@ -12,6 +12,9 @@
 ;===============================================================================
 ; ChangeLog (most recent entries are at top)
 ;===============================================================================
+; z80em86-88 - 5 October 2026
+; - Export cdebnk, memsze (88 mode checks the current bank and the TPA).
+;
 ; v1.0.0 - 16 February 2009, S.J.Kay
 ; - Convert sources from TASM to NASM format and prepare for GPL release.
 ; - Removed one occurence of label NEAR from: 'ctlalt: lea cx,[NEAR ReqAct]'
@@ -69,6 +72,7 @@ GLOBAL	bnkini, bnkres, cpycom
 GLOBAL	newkbd, oldkbd
 
 GLOBAL	HrdFle, Handle
+GLOBAL	cdebnk, memsze
 GLOBAL	Z80seg, Z80dma
 GLOBAL	sveoff, sveseg, sveamt, reqcpy
 

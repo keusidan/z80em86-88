@@ -13,6 +13,7 @@
 ; z80em86-88 - 5 October 2026
 ; - Prefixed opcodes subtract their T-states (TC1-TC6) from tleft.
 ; - Shared opcode fetch/dispatch code DispA-DispD (was inlined by macros).
+; - OUT (n),A writes PC-8801 port n in 88 mode (PC88.ASM).
 ; - Add Z80R7 (R bit 7). DD/FD/ED/CB prefixed opcodes count a 2nd M1 in R.
 ;
 ; v1.0.0 - 10 February 2009, S.J.Kay
@@ -66,6 +67,7 @@ EXTERN  tleft, Tslow
 
 %define INSTHAND
 %include "macros.asm"
+%include "io88.inc"
 
 svewrd  resw	1               ;temporary word storage
 FlagX   resb	1               ;saves flag bits 5 and 3
@@ -143,7 +145,16 @@ DispB:
 dslowb: jmp     Tslow
 
 ; High level interface functions accessed with OUT (FncNmb),A
-Z_8086: mov     si,ax                   ;save Z80 reg A
+; In 88 mode, OUT (n),A in the TPA writes PC-8801 port n instead (PC88.ASM).
+Z_8086: lahf
+        P88USR  z8086f
+        mov     di,[es:Z80+bp]
+        and     di,00ffh                ;port = n
+        inc     bp
+        call    p88out                  ;AL = A
+        XinstB                          ;AH = Z80 F
+z8086f: sahf
+        mov     si,ax                   ;save Z80 reg A
         xor     ah,ah
         mov     al,[es:Z80+bp]          ;8086 code function number
         mov     di,ax

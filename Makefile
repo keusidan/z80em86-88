@@ -49,10 +49,13 @@ z80check:
 	scripts/cpm-run.sh scripts/z80check.sub
 
 # ZEXDOC (Z80 命令の網羅テスト) を CP/M 内でビルドして実行する。数十分かかる
-# ZML は ASEG を出力しないので、ASEG + ORG 100h を CSEG に置き換えてからアセンブルする
+# ZML は ASEG を出力しないので、ASEG + ORG 100h を CSEG に置き換えてからアセンブルする。
+# msbt は 0103h 固定 (期待 CRC に番地が入る)。ZMAC は再配置可能な番地の LOW/HIGH を
+# 再配置しないので、その 9 か所は数値に置き換える
 zexdoc: | build
 	test -f zex/zexdoc.z80 || scripts/get-tools.sh zex
-	sed 's/^\taseg\r$$/\tcseg\r/; /^\torg\t100h\r$$/d' zex/zexdoc.z80 > build/zexdoc.z80
+	sed 's/^\taseg\r$$/\tcseg\r/; /^\torg\t100h\r$$/d; s/low msbt/03h/g; s/high msbt/01h/g' \
+		zex/zexdoc.z80 > build/zexdoc.z80
 	scripts/cpm-run.sh scripts/zexdoc.sub slow88.conf 10800 | tee build/zexdoc.log
 
 clean:

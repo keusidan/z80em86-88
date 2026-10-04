@@ -17,8 +17,10 @@
 ;     T-states of each opcode (tables in TIMING.ASM) from tleft and enter
 ;     Tslow when it goes negative, where the emulator waits for the next tick.
 ;   * DOS environment Z80SPEED=4 (default), 8 (8 MHz) or 0 (no limit).
-;   * Z80 maskable interrupts (IM 0/1/2) are accepted in Tslow. Sources set
-;     bits in irqpend (only when enabled in irqmask, set later by the I/O ports).
+;   * Z80 maskable interrupts (IM 0/1/2) are accepted in Tslow. Requests are
+;     latched in irqpend, enabled by irqmask (port E6h) and lvlmsk (E4h), see
+;     PC88.ASM. They are only accepted while a 88 mode program runs in the
+;     TPA (bank 1, below the common memory), never inside the BIOS.
 ;===============================================================================
 ; This program is free software; you can redistribute it and/or modify
 ; it under the terms of the GNU General Public License as published by
@@ -55,12 +57,16 @@ SEGMENT	.code	public align=16
 
 %define TIMER
 GLOBAL  tleft, Tslow, tmrini, tmrres, tblk, tblkn, tforce, tmrrst
-GLOBAL  IFF1, eidly, halted, imode, irqpend, irqmask
+GLOBAL  IFF1, eidly, halted, imode, irqpend, irqmask, tick10
 
 ; declared in INSTHAND.ASM
 EXTERN  IFF, Z80I, Z80SP
 ; declared in TABLE.ASM
 EXTERN  T0
+; declared in PC88.ASM
+EXTERN  lvlmsk, intdis, pc88
+; declared in HARDWARE.ASM
+EXTERN  cdebnk, memsze
 
 %include "macros.asm"
 
@@ -199,9 +205,17 @@ tmrirq: mov     al,00000100b            ;level 2: CLOCK 600 Hz
         jb      tmrreq
         mov     BYTE [tick10],0
         or      al,00000010b            ;level 1: VRTC 60 Hz
-tmrreq: and     al,[irqmask]
+tmrreq: mov     ah,[irqpend]            ;i8214 (MAME): re-armed when no
+        and     ah,[irqmask]            ;other request is waiting
+        jnz     tmrlat
+        mov     BYTE [intdis],0
+tmrlat: or      [irqpend],al            ;latched even when masked
+        mov     al,[irqpend]
+        and     al,[irqmask]
+        and     al,[lvlmsk]
         jz      tmrbio
-        or      [irqpend],al
+        cmp     BYTE [intdis],0
+        jnz     tmrbio
         call    tforce                  ;check it at the next opcode
 tmrbio: add     WORD [pitacc],PITDIV    ;time for the BIOS 18.2 Hz tick ?
         jc      tmrold
@@ -306,8 +320,17 @@ Tslow:  mov     [tcost],ax
 tslchk: cli
         call    tnorm
         sti
+        cmp     BYTE [intdis],0         ;i8214 not re-armed yet
+        jnz     tslnoi
+        cmp     BYTE [pc88],0           ;interrupts only in the 88 mode TPA:
+        jz      tslnoi                  ;the BIOS (bank 0, common memory)
+        cmp     BYTE [cdebnk],1         ;does not expect them, the program's
+        jnz     tslnoi                  ;IM 2 table is in bank 1
+        cmp     bp,[memsze]
+        jae     tslnoi
         mov     al,[irqpend]
         and     al,[irqmask]
+        and     al,[lvlmsk]
         jz      tslnoi
         cmp     BYTE [eidly],0          ;just after EI: run one more opcode
         jnz     tsleid
@@ -361,6 +384,7 @@ tslnhl: xor     al,al
         mov     [IFF],al                ;IFF2 = 0 (P/V of LD A,I)
         mov     al,[irqpend]            ;take the highest priority level
         and     al,[irqmask]
+        and     al,[lvlmsk]
         xor     di,di                   ;level (CX = Z80 BC is not used)
         mov     ah,1
 tsllvl: test    al,ah
@@ -370,6 +394,12 @@ tsllvl: test    al,ah
         jmp     tsllvl
 tslclr: not     ah
         and     [irqpend],ah
+        mov     BYTE [intdis],1         ;i8214: no more until re-armed, MAME
+        mov     ah,[irqpend]            ;re-arms it when nothing else waits
+        and     ah,[irqmask]
+        jnz     tslarm
+        mov     BYTE [intdis],0
+tslarm:
         mov     ax,di
         add     al,al                   ;IM 2 vector offset = level * 2
         mov     di,[Z80SP]              ;push PC

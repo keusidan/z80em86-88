@@ -1,0 +1,5 @@
+device conout:=crt2
+dostocpm c:\irqtest.z80 c: /f
+zmac irqtest.z80
+zml irqtest
+irqtest

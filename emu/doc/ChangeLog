@@ -17,6 +17,11 @@ Changes:
   interrupt, RETN/RETI, interrupt acceptance in IM 0/1/2.
 * The opcode fetch/dispatch code is shared (DispA-DispD) instead of being
   inlined in every handler, the code segment stays below 64K.
+* 88 mode (new file src/pc88.asm): a program turns it on with OUT (0E0h),A,
+  the warm boot turns it off. In 88 mode IN/OUT in the TPA access PC-8801
+  style ports: 40h (BEEP, SING, VRTC status), E4h (interrupt level), E6h
+  (interrupt mask), CLOCK 600 Hz and VRTC 60 Hz interrupts (IM 2 vector =
+  level * 2), block I/O (INI..OTDR). Behaviour follows MAME.
 
 9 March 2011 - SJK
 ------------------

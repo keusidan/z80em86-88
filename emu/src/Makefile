@@ -12,6 +12,7 @@
 # -----------------------------
 # Add undoc.obj (undocumented Z80 instructions).
 # Add timer.obj (real time speed, interrupts) and timing.obj (T-states).
+# Add pc88.obj (PC-8801 style I/O ports, 88 mode).
 #
 # v1.0.0 - S.J.Kay 13/2/2009
 # --------------------------
@@ -55,10 +56,10 @@ OBJA=./arith16.obj ./bit.obj ./control.obj ./function.obj ./insthand.obj
 OBJA+=./jump.obj ./load8.obj ./main.obj ./rotate.obj ./table.obj ./window.obj
 OBJA+=./arith8.obj ./call.obj ./exchange.obj ./hardware.obj ./io.obj ./load16.obj
 OBJA+=./macros.obj ./res.obj ./set.obj ./video.obj ./undoc.obj
-OBJA+=./timer.obj ./timing.obj
+OBJA+=./timer.obj ./timing.obj ./pc88.obj
 
 # Dependencies
-DEPENDENCIES=macros.asm Makefile
+DEPENDENCIES=macros.asm io88.inc Makefile
 
 HAVE_DOSEMU=$(wildcard ~/.dosemu/drive_c)
 

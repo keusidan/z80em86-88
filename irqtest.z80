@@ -1,0 +1,114 @@
+; irqtest.z80 - PC-8801 style interrupts in z80em86 88 mode (CP/M .COM)
+;   CLOCK (600 Hz, level 2) and VRTC (60 Hz, level 1) with IM 2.
+;   Waits with HALT for 600 CLOCK interrupts (1 second at real speed) and
+;   prints both counts: expect CLOCK=600 VRTC=60.
+;   Also counts how often port 40h bit 5 (VRTC) was seen as 1.
+; keep this file ASCII only: DOS EDIT cannot show UTF-8
+
+BDOS    equ     5
+VECTBL  equ     8000h           ; IM 2 table: I = 80h, vector = level * 2
+
+        ld      sp,stack
+        out     (0E0h),a        ; z80em86: 88 mode on
+
+        ld      hl,vrtcisr
+        ld      (VECTBL+2),hl   ; level 1 VRTC
+        ld      hl,clkisr
+        ld      (VECTBL+4),hl   ; level 2 CLOCK
+        ld      a,high VECTBL
+        ld      i,a
+        im      2
+        ld      a,08h           ; E4h: all levels
+        out     (0E4h),a
+        ld      a,03h           ; E6h: CLOCK + VRTC on
+        out     (0E6h),a
+        ei
+
+wait:   halt                    ; sleep until an interrupt
+        in      a,(40h)         ; VRTC status
+        and     20h
+        jr      z,wait1
+        ld      hl,(vrtcbit)
+        inc     hl
+        ld      (vrtcbit),hl
+wait1:  ld      hl,(clkcnt)
+        ld      de,-600
+        add     hl,de
+        jr      nc,wait         ; until 600 CLOCKs
+
+        di
+        xor     a
+        out     (0E6h),a        ; all masked
+        ld      de,m_clk
+        ld      hl,(clkcnt)
+        call    prnum
+        ld      de,m_vrtc
+        ld      hl,(vrtccnt)
+        call    prnum
+        ld      de,m_bit
+        ld      hl,(vrtcbit)
+        call    prnum
+        jp      0               ; warm boot (88 mode off)
+
+clkisr: push    af
+        push    hl
+        ld      hl,(clkcnt)
+        inc     hl
+        ld      (clkcnt),hl
+        ld      a,08h           ; re-arm the i8214
+        out     (0E4h),a
+        pop     hl
+        pop     af
+        ei
+        reti
+
+vrtcisr: push   af
+        push    hl
+        ld      hl,(vrtccnt)
+        inc     hl
+        ld      (vrtccnt),hl
+        ld      a,08h
+        out     (0E4h),a
+        pop     hl
+        pop     af
+        ei
+        reti
+
+; print the string at DE, then HL in decimal, then CR LF
+prnum:  push    hl
+        ld      c,9
+        call    BDOS
+        pop     hl
+        ld      de,numbuf+5
+        ld      b,5
+pn1:    push    bc
+        ld      c,10            ; HL = HL / 10, A = remainder
+        xor     a
+        ld      b,16
+pn2:    add     hl,hl
+        rla
+        cp      c
+        jr      c,pn3
+        sub     c
+        inc     l
+pn3:    djnz    pn2
+        pop     bc
+        add     a,'0'
+        dec     de
+        ld      (de),a
+        djnz    pn1
+        ld      c,9
+        call    BDOS
+        ret
+
+clkcnt: dw      0
+vrtccnt: dw     0
+vrtcbit: dw     0
+m_clk:  db      'CLOCK=$'
+m_vrtc: db      'VRTC=$'
+m_bit:  db      'port 40h VRTC seen=$'
+numbuf: db      '00000',13,10,'$'
+        ds      64
+stack:
+
+        end
