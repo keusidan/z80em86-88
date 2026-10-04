@@ -1,0 +1,128 @@
+; gvtest.z80 - PC-8801 style GVRAM in z80em86 88 mode (CP/M .COM)
+;   Draws 8 color bars (80 dots each) with the 3 planes at C000h, checks
+;   the planes by reading them back, shows the graphics for 3 seconds
+;   (180 VRTC from port 40h), then prints the number of read errors.
+; The stack must be below C000h: GVRAM replaces C000h-FFFFh (as on the
+; PC-8801), and CP/M puts the stack at the top of the TPA.
+; keep this file ASCII only: DOS EDIT cannot show UTF-8
+
+BDOS    equ     5
+
+        ld      sp,stack        ; below C000h
+        out     (0E0h),a        ; z80em86: 88 mode on
+
+        ld      c,0             ; plane 0 blue, 1 red, 2 green
+plane:  ld      a,c
+        add     a,5Ch           ; port 5Ch + plane
+        ld      (selp+1),a
+selp:   out     (5Ch),a         ; (port patched above)
+        ld      hl,0C000h
+        ld      d,200           ; lines
+line:   ld      b,80            ; bytes per line
+        ld      e,0             ; byte column
+col:    ld      a,e             ; bar = column / 10 (0-7)
+        push    bc
+        ld      b,0
+div10:  sub     10
+        jr      c,div10e
+        inc     b
+        jr      div10
+div10e: ld      a,b             ; bar number
+        pop     bc
+        push    bc
+        ld      b,c             ; bit of this plane set in bar ?
+        inc     b
+bit:    rrca
+        djnz    bit
+        pop     bc
+        ld      a,0
+        jr      nc,put
+        ld      a,0FFh
+put:    ld      (hl),a
+        inc     hl
+        inc     e
+        djnz    col
+        dec     d
+        jr      nz,line
+        inc     c
+        ld      a,c
+        cp      3
+        jr      nz,plane
+        out     (5Fh),a         ; main RAM back at C000h
+
+; read back: byte 0 of each bar in line 0 of each plane
+        ld      hl,0            ; error count
+        ld      c,0
+chkpl:  ld      a,c
+        add     a,5Ch
+        ld      (selc+1),a
+selc:   out     (5Ch),a
+        ld      de,0C000h
+        ld      b,0             ; bar 0-7
+chkb:   ld      a,b             ; expected = FF if bit c of bar is set
+        push    bc
+        ld      b,c
+        inc     b
+cbit:   rrca
+        djnz    cbit
+        pop     bc
+        ld      a,0
+        jr      nc,cexp
+        ld      a,0FFh
+cexp:   ex      de,hl
+        cp      (hl)
+        ex      de,hl
+        jr      z,cok
+        inc     hl
+cok:    push    hl
+        ld      hl,10
+        add     hl,de
+        ex      de,hl
+        pop     hl
+        inc     b
+        ld      a,b
+        cp      8
+        jr      nz,chkb
+        inc     c
+        ld      a,c
+        cp      3
+        jr      nz,chkpl
+        out     (5Fh),a
+        ld      (errs),hl
+
+        ld      a,39h           ; 31h: graphics on, color, 200 lines
+        out     (31h),a
+        ld      bc,180          ; 3 seconds of VRTC
+wv0:    in      a,(40h)         ; wait for VRTC = 0
+        and     20h
+        jr      nz,wv0
+wv1:    in      a,(40h)         ; wait for VRTC = 1
+        and     20h
+        jr      z,wv1
+        dec     bc
+        ld      a,b
+        or      c
+        jr      nz,wv0
+        xor     a
+        out     (31h),a         ; graphics off (text mode)
+
+        ld      de,m_err
+        ld      c,9
+        call    BDOS
+        ld      a,(errs)
+        add     a,'0'
+        ld      e,a
+        ld      c,2
+        call    BDOS
+        ld      de,m_crlf
+        ld      c,9
+        call    BDOS
+        jp      0
+
+errs:   dw      0
+m_err:  db      'GVRAM read back errors=$'
+m_crlf: db      13,10,'$'
+        ds      64
+stack:
+
+        end

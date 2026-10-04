@@ -64,7 +64,7 @@ EXTERN  IFF, Z80I, Z80SP
 ; declared in TABLE.ASM
 EXTERN  T0
 ; declared in PC88.ASM
-EXTERN  lvlmsk, intdis, pc88
+EXTERN  lvlmsk, intdis, pc88, grmode, redraw, grdraw
 ; declared in HARDWARE.ASM
 EXTERN  cdebnk, memsze
 
@@ -205,6 +205,10 @@ tmrirq: mov     al,00000100b            ;level 2: CLOCK 600 Hz
         jb      tmrreq
         mov     BYTE [tick10],0
         or      al,00000010b            ;level 1: VRTC 60 Hz
+        cmp     BYTE [grmode],0         ;88 graphics shown: draw it
+        jz      tmrreq
+        mov     BYTE [redraw],1
+        call    tforce
 tmrreq: mov     ah,[irqpend]            ;i8214 (MAME): re-armed when no
         and     ah,[irqmask]            ;other request is waiting
         jnz     tmrlat
@@ -317,6 +321,9 @@ tblk:   push    ax
 ;   opcode (already subtracted), BP = PC after the opcode byte.
 ;===============================================================================
 Tslow:  mov     [tcost],ax
+        cmp     BYTE [redraw],0         ;VRTC: copy the 88 graphics to EGA
+        jz      tslchk
+        call    grdraw
 tslchk: cli
         call    tnorm
         sti

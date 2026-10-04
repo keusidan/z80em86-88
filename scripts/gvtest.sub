@@ -1,0 +1,5 @@
+device conout:=crt2
+dostocpm c:\gvtest.z80 c: /f
+zmac gvtest.z80
+zml gvtest
+gvtest

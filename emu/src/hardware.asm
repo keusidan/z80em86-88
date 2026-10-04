@@ -13,7 +13,7 @@
 ; ChangeLog (most recent entries are at top)
 ;===============================================================================
 ; z80em86-88 - 5 October 2026
-; - Export cdebnk, memsze (88 mode checks the current bank and the TPA).
+; - Export cdebnk, memsze, Z80bk1 (88 mode: TPA check, GVRAM at C000h).
 ;
 ; v1.0.0 - 16 February 2009, S.J.Kay
 ; - Convert sources from TASM to NASM format and prepare for GPL release.
@@ -72,7 +72,7 @@ GLOBAL	bnkini, bnkres, cpycom
 GLOBAL	newkbd, oldkbd
 
 GLOBAL	HrdFle, Handle
-GLOBAL	cdebnk, memsze
+GLOBAL	cdebnk, memsze, Z80bk1
 GLOBAL	Z80seg, Z80dma
 GLOBAL	sveoff, sveseg, sveamt, reqcpy
 

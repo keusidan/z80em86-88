@@ -14,6 +14,7 @@
 ; - Install the 600 Hz timer (TIMER.ASM) at start, restore it at exit,
 ;   reset the timing and interrupt state with the Z80 registers.
 ; - Z80 reset turns 88 mode off (PC88.ASM).
+; - Allocate the 88 mode GVRAM store before the RAM disk blocks.
 ;
 ; v1.0.0 - 20 February 2009, S.J.Kay
 ; - Convert sources from TASM to NASM format and prepare for GPL release.
@@ -72,7 +73,7 @@ EXTERN  PrnStr, GetKey, EraScr, HdeCur
 EXTERN  bnkini, bnkres
 EXTERN  newkbd, oldkbd
 EXTERN  tmrini, tmrres, tmrrst
-EXTERN  pc88off
+EXTERN  pc88off, gvaloc
 EXTERN  rdflop, rdhard
 EXTERN  HrdFle, Handle
 
@@ -245,6 +246,8 @@ AloWnd: mov     ah,048h                 ;allocate memory function
         jnc     VidSet
         jmp     ErrAlo
 VidSet: mov     [VidBuf],ax             ;save segment of 16 K-byte block
+        call    NEAR gvaloc             ;64K GVRAM store for 88 mode, before
+                                        ;the RAM disk takes all the rest
 
 ; Allocate remaining memory in 16 K-byte blocks
         mov     BYTE [BufCnt],0         ;set block counter to 0
