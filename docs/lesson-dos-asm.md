@@ -34,6 +34,7 @@ cd /home/ponzu/Documents/dosbox && make dos
 - `/home/ponzu/Documents/dosbox` を `C:` として mount し、`C:\>` から始める
 - PATH に `C:\NASM`（アセンブラ）と `C:\EDIT`（エディター）を追加する
 - 日本語キーボードの配列にする（`slow486.conf` の `keyb jp 437`）
+- シェルを 4DOS にして、打ったコマンドを `build/CMD.LOG` に時刻付きで記録する（`scripts/doslog.btm`）。記録されるのはコマンドだけで、結果は記録されない。`log off` で止まり、`exit` で COMMAND.COM に戻る。↑キーで前のコマンドを呼び出せる
 
 ### ドライブの使い分け
 

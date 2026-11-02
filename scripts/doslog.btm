@@ -1,0 +1,9 @@
+@echo off
+rem doslog.btm - 4DOS startup for "make dos": log typed commands to C:\BUILD\CMD.LOG
+rem usage: 4dos /k c:\scripts\doslog.btm
+rem   only the commands are logged (not their output). "log off" stops it,
+rem   "exit" returns to COMMAND.COM
+if not isdir c:\build md c:\build
+log /w c:\build\cmd.log
+log on
+echo Logging commands to C:\BUILD\CMD.LOG

@@ -21,8 +21,9 @@ run: $(BIN)
 debug: $(BIN)
 	$(DOSBOX) -c "debug build\$(NAME).com"
 
+# 4DOS で起動し、打ったコマンドを build/CMD.LOG に記録する (scripts/doslog.btm)
 dos:
-	$(DOSBOX) -c "set PATH=C:\NASM;C:\EDIT;%PATH%"
+	$(DOSBOX) -c "set PATH=C:\NASM;C:\EDIT;%PATH%" -c "4dos /k c:\scripts\doslog.btm"
 
 nasm:
 	scripts/get-tools.sh nasm $(NASM_VER)
