@@ -5,10 +5,11 @@
 #        scripts/get-tools.sh zmac             -> zmac/  (Al Hawley の ZMAC, CP/M 用。中身は CRUNCH 圧縮のまま)
 #        scripts/get-tools.sh z80em86          -> z80em86/ (Z80 エミュレータ z80em86 + CP/M 3 一式)
 #        scripts/get-tools.sh zex              -> zex/  (Frank Cringle の ZEXDOC/ZEXALL ソース, GPL)
+#        scripts/get-tools.sh msdos4           -> msdos4/ (microsoft/MS-DOS の v4.0, MIT。src/ にビルド用ツール一式入り, 約 21MB)
 # 展開後のファイル名は unzip -LL で小文字にそろえる
 set -eu
 
-tool=${1:?usage: $0 nasm|edit|zmac|z80em86|zex [version]}
+tool=${1:?usage: $0 nasm|edit|zmac|z80em86|zex|msdos4 [version]}
 
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
@@ -57,6 +58,29 @@ zex)
 	mkdir -p zex
 	unzip -o -LL "$tmp/pkg.zip" -d zex
 	ls -l zex
+	;;
+msdos4)
+	# リポジトリ全体は PDF で巨大なので、v4.0 だけを sparse checkout する
+	git clone -q --depth 1 --filter=blob:none --sparse https://github.com/microsoft/MS-DOS.git "$tmp/repo"
+	git -C "$tmp/repo" sparse-checkout set v4.0
+	# 前のビルドの生成物 (古い boot.cl1 など) が残ると nmake が最新と見なして飛ばすので、作り直す。
+	# ビルドが読み取り専用にしたファイル (attrib +R) があるので、先に書き込みを許可する
+	if [ -d msdos4 ]; then chmod -R u+w msdos4; rm -rf msdos4; fi
+	mkdir -p msdos4
+	cp -r "$tmp/repo/v4.0/." msdos4/
+	# GitHub 上のソースは、CP437 の罫線文字などが U+FFFD (EF BF BD の 3 バイト) に化けている。
+	# コメント行が 3 倍に伸びて MASM が "Line too long" で止まるので、1 バイトの '=' に置き換える
+	bad=$(printf '\357\277\275')
+	LC_ALL=C grep -rIl "$bad" msdos4 | xargs -r env LC_ALL=C sed -i "s/$bad/=/g"
+	# リポジトリのテキストはほぼ全部が LF のみ。DOS のツール (nosrvbld など) は CRLF 前提なので直す
+	# 注意: grep -I -L はバイナリ (EXE など) も「CR を含まないファイル」として出すので、
+	# 先に grep -rIl '' でテキストだけを選ぶ。選ばないと MASM.EXE などが壊れる
+	LC_ALL=C grep -rIl '' msdos4 | xargs -r env LC_ALL=C grep -L "$(printf '\r')" |
+		xargs -r env LC_ALL=C sed -i 's/$/\r/'
+	# .SKL の末尾の Ctrl-Z (EOF マーカー) があると、nosrvbld が後ろのメッセージを取り違える
+	# (msdos.skl の NLS_YES が "Y" ではなく別のメッセージになる)。その行を消す
+	find msdos4 -iname '*.SKL' | xargs -r env LC_ALL=C sed -i '/^\x1a\r*$/d'
+	ls msdos4 msdos4/src
 	;;
 *)
 	echo "unknown tool: $tool" >&2

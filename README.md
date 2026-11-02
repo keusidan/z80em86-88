@@ -35,6 +35,8 @@ ZMAC（CP/M 用の Z80 アセンブラ）は CRUNCH 圧縮のまま配布され�
 | `make z80check` | Z80 命令のテスト（`z80check.z80`）を CP/M 内で ZMAC → ZML → 実行 |
 | `make zexdoc` | ZEXDOC を CP/M 内でビルドして実行（速度制限なしで約 30 分） |
 | `scripts/cpm-run.sh <file.sub>` | z80em86 に CP/M の submit ファイルを流して、コンソール出力を表示 |
+| `make msdos4` → `make msdos4-build` → `make msdos4-img` → `make msdos4-run` | 本物の MS-DOS 4.00（[microsoft/MS-DOS](https://github.com/microsoft/MS-DOS)、MIT）のソースを取得→DOSBox-X の中でビルド（ウィンドウなし、約 3 分）→起動フロッピー `build/msdos4.img` を作る→DOSBox-X で起動。EDLIN の F1/F3 などが MS-DOS どおりに動く。起動後に見えるのは A:（フロッピー）だけで、ホストのフォルダーは見えない |
+| `scripts/qemu-run.sh <image> <秒> [キー...]` | イメージを QEMU でウィンドウなしに起動し、画面を PNG で保存（キーも送れる） |
 | `scripts/bench-cmp.sh <exe>...` | z80em86.exe の速さの比較 |
 | `scripts/dosbox-shot.sh <file.sub> <秒>` | DOSBox の画面だけを、DOSBox-X 自身の機能（F12+P）で撮影 |
 

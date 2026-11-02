@@ -1,0 +1,4 @@
+@echo off
+ver > a:\ver.txt
+dir a: > a:\dir.txt
+echo boot ok > a:\done.txt

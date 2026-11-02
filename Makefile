@@ -40,6 +40,22 @@ z80em86:
 zex:
 	scripts/get-tools.sh zex
 
+msdos4:
+	scripts/get-tools.sh msdos4
+
+# MS-DOS 4.00 のソースを DOSBox-X の中でビルドする (ウィンドウなし、3 分ほど)
+msdos4-build:
+	scripts/msdos4-build.sh
+
+# ビルドした MS-DOS 4.00 の起動フロッピー build/msdos4.img を作る
+msdos4-img:
+	scripts/msdos4-img.sh
+
+# 本物の MS-DOS 4.00 を DOSBox-X で起動する (A: がフロッピー。ホストのフォルダーは見えない)
+msdos4-run:
+	test -f build/msdos4.img || scripts/msdos4-img.sh
+	$(DOSBOX) -c "boot c:\build\msdos4.img"
+
 # emu/src の z80em86 をビルドし、実行環境 z80em86/ の exe を置き換える
 emu:
 	$(MAKE) -C emu/src
@@ -62,4 +78,4 @@ zexdoc: | build
 clean:
 	rm -rf build
 
-.PHONY: all run debug dos nasm edit zmac z80em86 zex emu z80check zexdoc clean
+.PHONY: all run debug dos nasm edit zmac z80em86 zex msdos4 msdos4-build msdos4-img msdos4-run emu z80check zexdoc clean
