@@ -13,5 +13,6 @@ copy d:\src\cmd\format\format.com a:\
 copy d:\src\cmd\attrib\attrib.exe a:\
 copy d:\src\cmd\find\find.exe a:\
 copy d:\src\cmd\more\more.com a:\
+copy c:\build\jpkey.com a:\
 copy c:\scripts\msdos4.aut a:\autoexec.bat
 dir a: > c:\build\mk4img.txt

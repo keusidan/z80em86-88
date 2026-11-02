@@ -6,6 +6,7 @@
 #         (2) ブートセクタのコードだけ msboot.bin のものに差し替える (BPB は mkfs.fat のまま)
 #         (3) DOSBox-X (-silent, ウィンドウなし) の中で IO.SYS, MSDOS.SYS の順にコピーする
 #             (先頭 2 エントリで連続して置かないとブートできない)
+#   キー配列は jpkey.asm (JP106) を AUTOEXEC.BAT で常駐させる
 #   コピーする内容は scripts/mk4img.bat、起動後に走る AUTOEXEC.BAT は scripts/msdos4.aut
 set -eu
 
@@ -17,6 +18,8 @@ for f in BIOS/IO.SYS DOS/MSDOS.SYS CMD/COMMAND/COMMAND.COM BOOT/MSBOOT.BIN; do
 	[ -f "$src/$f" ] || { echo "msdos4-img: $f がありません。scripts/msdos4-build.sh を先に実行してください" >&2; exit 1; }
 done
 mkdir -p "$root/build"
+# 日本語キー配列の TSR (MS-DOS 4.00 の KEYB には JP がない)
+nasm -f bin -o "$root/build/jpkey.com" "$root/jpkey.asm"
 rm -f "$img" "$root/build/MK4IMG.TXT"
 
 # (1) 360KB (2 面 x 40 トラック x 9 セクタ)。root 112 エントリ、1 クラスタ 2 セクタ

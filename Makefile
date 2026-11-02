@@ -60,8 +60,11 @@ msdos4-img:
 
 # 本物の MS-DOS 4.00 を DOSBox-X で起動する。A: = 起動フロッピー、B: = ホストの work/ の中身
 # 起動前に work/ → B: (push)、終了後に B: → work/ (pull) を自動で行う。DOSBox-X が異常終了しても pull する
-msdos4-run:
-	test -f build/msdos4.img || scripts/msdos4-img.sh
+# jpkey.asm や AUTOEXEC.BAT を変えたら作り直す (A: に書いたものは消える)
+build/msdos4.img: jpkey.asm scripts/mk4img.bat scripts/msdos4.aut scripts/msdos4-img.sh
+	scripts/msdos4-img.sh
+
+msdos4-run: build/msdos4.img
 	scripts/msdos4-work.sh push
 	-$(DOSBOX) -c "imgmount 1 c:\build\work.img -t floppy -fs none" -c "boot c:\build\msdos4.img"
 	scripts/msdos4-work.sh pull
