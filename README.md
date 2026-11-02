@@ -31,7 +31,7 @@ ZMAC（CP/M 用の Z80 アセンブラ）は CRUNCH 圧縮のまま配布され�
 
 | コマンド | 内容 |
 |---|---|
-| `make` / `make run` / `make debug` / `make dos` | x86：ホストの nasm で `hello.asm` をビルド／DOSBox-X で実行／DEBUG で開く／DOS シェル（`C:\NASM`、`C:\EDIT` に PATH が通る） |
+| `make` / `make run` / `make run-builtin` / `make debug` / `make dos` | x86：ホストの nasm で `hello.asm` をビルド／ビルドして本物の MS-DOS 4.00 を起動（B: で `hello`。下の `msdos4-run` 参照）／DOSBox-X 内蔵 DOS で実行／DEBUG で開く／DOS シェル（`C:\NASM`、`C:\EDIT` に PATH が通る） |
 | `make z80check` | Z80 命令のテスト（`z80check.z80`）を CP/M 内で ZMAC → ZML → 実行 |
 | `make zexdoc` | ZEXDOC を CP/M 内でビルドして実行（速度制限なしで約 30 分） |
 | `scripts/cpm-run.sh <file.sub>` | z80em86 に CP/M の submit ファイルを流して、コンソール出力を表示 |

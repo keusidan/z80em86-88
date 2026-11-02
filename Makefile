@@ -15,7 +15,14 @@ $(BIN): $(NAME).asm | build
 build:
 	mkdir -p $@
 
+# 標準: 本物の MS-DOS 4.00 を起動する。hello.com は work/ 経由で B: に入る (B: で hello と打つ)
 run: $(BIN)
+	mkdir -p work
+	cp $(BIN) work/HELLO.COM
+	$(MAKE) msdos4-run
+
+# DOSBox-X 内蔵の DOS で hello.com をそのまま実行する (従来の make run)
+run-builtin: $(BIN)
 	$(DOSBOX) -c "build\$(NAME).com"
 
 debug: $(BIN)
@@ -81,4 +88,4 @@ zexdoc: | build
 clean:
 	rm -rf build
 
-.PHONY: all run debug dos nasm edit zmac z80em86 zex msdos4 msdos4-build msdos4-img msdos4-run emu z80check zexdoc clean
+.PHONY: all run run-builtin debug dos nasm edit zmac z80em86 zex msdos4 msdos4-build msdos4-img msdos4-run emu z80check zexdoc clean
