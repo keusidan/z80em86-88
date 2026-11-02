@@ -261,6 +261,64 @@ C の文字列の `\0` を忘れたときに起きるバッファオーバーリ
 
 ---
 
+## 課題 6（挑戦・任意）：`$` を使わずに表示する
+
+### `$` は誰の決まりか
+
+`$` は、アセンブリ言語の決まりではありません。**DOS の `AH=09h` という機能だけの決まり**です。
+アセンブリ言語の `db "Hello"` は、ただバイトを並べるだけです。文字列の終わりをどう伝えるかは、呼び出す相手（OS や関数）の約束で決まります。
+
+| 呼び出す相手 | 文字列の終わりの伝え方 |
+|---|---|
+| DOS の INT 21h **AH=09h** | `$` で終わる |
+| C 言語の `puts`、`printf` など | `\0` で終わる |
+| DOS の INT 21h **AH=40h** | 長さを `CX` で渡す |
+| Linux の `write` システムコール | 長さを `rdx` で渡す |
+| Windows の `WriteFile` / `WriteConsole` | 長さを引数で渡す |
+
+### 課題
+
+`B:` で `copy hi.asm price.asm` を打って複製し、`price.asm` を AH=40h を使う形に書き換えて、`"Price: $5"` が最後まで表示されることを確かめてください。AH=09h では、`$` のところで表示が止まってしまう文です。
+
+```nasm
+        mov ah, 0x40            ; INT 21h AH=40h: write to handle
+        mov bx, 1               ; handle 1 = stdout (screen)
+        mov cx, msglen          ; number of bytes
+        mov dx, msg             ; DS:DX -> string
+        int 0x21
+        ...
+msg:    db "Price: $5", 13, 10
+msglen  equ $ - msg             ; length, computed by NASM
+```
+
+**紛らわしい点**：`msglen equ $ - msg` の `$` は、文字列の終わりの印ではありません。
+NASM の記号で、「今この行の番地」という意味です。`$ - msg` は「今の番地 − 文字列の先頭の番地 = 文字列の長さ」になります。
+
+- 引用符の中の `"$"` → ただの文字（AH=09h の終わりの印）
+- 引用符の外の `$` → NASM が計算する番地
+
+### 参考：Linux（x86-64）で同じことをすると
+
+```nasm
+        mov rax, 1              ; syscall 1 = write
+        mov rdi, 1              ; fd 1 = stdout
+        mov rsi, msg            ; address of the string
+        mov rdx, msglen         ; length
+        syscall
+```
+
+「どこに・何を・何バイト」を渡すという形は、DOS の AH=40h と同じです。違うのはレジスタの名前と、呼び出し方（`int 0x21` か `syscall` か）だけです。
+
+長さを渡す方式のほうが安全です。終わりの印を忘れても、メモリーの先まで読み進めることがありません。また、文字列の中に `$` や `\0` そのものを含められます。
+
+---
+
+## 困ったとき
+
+- DOSBox-X の画面のスクリーンショットは、`/home/ponzu/capture/` に保存されます。打ったコマンドと画面を見せてもらえれば、どこで止まっているかを一緒に確認できます。
+- 打ったコマンドは記録されない（MS-DOS 4.00 にはその機能がない）ので、スクリーンショットが頼りです。
+- 課題 5 と課題 6 の答えは、できたら見せるか、「答えを見たい」と言ってください。
+
 ## 参考：DOSBox-X 内蔵の DOS を使う場合
 
 前の構成（DOSBox-X 内蔵の DOS + 4DOS）も残っています。こちらでは NASM と EDIT を DOS の中で使えます。
@@ -278,3 +336,7 @@ C の文字列の `\0` を忘れたときに起きるバッファオーバーリ
 - [Edlin（Wikipedia）](https://en.wikipedia.org/wiki/Edlin)
 - [INT 21h AH=09h（Ralf Brown's Interrupt List）](https://www.ctyme.com/intr/rb-2562.htm)
 - [NASM のマニュアル（コマンドラインのオプション）](https://www.nasm.us/doc/nasmdoc2.html)
+- [NASM の `$`（現在の番地）](https://www.nasm.us/doc/nasmdoc3.html#section-3.5)
+- [INT 21h AH=40h（ハンドルへの書き込み）](https://www.ctyme.com/intr/rb-2791.htm)
+- [`.COM` 形式と PSP（Wikipedia）](https://en.wikipedia.org/wiki/COM_file)
+- [Linux の `write(2)`](https://man7.org/linux/man-pages/man2/write.2.html)
