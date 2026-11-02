@@ -7,6 +7,7 @@
 #              (例: e d l i n ret → 文字は 1 つずつ、Enter は ret、F3 は f3、Ctrl+C は ctrl-c)
 #   出力     : build/qemu/shot_00.png (最初)、shot_01.png ... (キーごと)
 #   環境変数 QEMU_CPU: -cpu (default: 486)
+#   環境変数 QEMU_FDB: B: に付けるフロッピーイメージ (例: build/work.img)
 #   環境変数 QEMU_KEYWAIT: キー 1 つごとの待ち秒数 (default: 1)
 #   環境変数 QEMU_SHOTS: all (default) なら毎回撮る。last なら最初と最後だけ
 # 例: scripts/qemu-run.sh build/msdos4.img 6 e d l i n spc h i dot a s m ret
@@ -23,7 +24,8 @@ mkdir -p "$out"
 rm -f "$sock" "$out"/shot_*.png "$out"/shot_*.ppm
 
 qemu-system-i386 -display none -machine pc -cpu "${QEMU_CPU:-486}" -m 4 \
-	-fda "$img" -boot a -monitor "unix:$sock,server,nowait" -serial none -parallel none \
+	-drive "file=$img,format=raw,if=floppy,index=0" ${QEMU_FDB:+-drive "file=$QEMU_FDB,format=raw,if=floppy,index=1"} \
+	-boot a -monitor "unix:$sock,server,nowait" -serial none -parallel none \
 	>"$out/qemu.log" 2>&1 &
 pid=$!
 trap 'kill $pid 2>/dev/null || true' EXIT

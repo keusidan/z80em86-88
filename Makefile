@@ -51,10 +51,13 @@ msdos4-build:
 msdos4-img:
 	scripts/msdos4-img.sh
 
-# 本物の MS-DOS 4.00 を DOSBox-X で起動する (A: がフロッピー。ホストのフォルダーは見えない)
+# 本物の MS-DOS 4.00 を DOSBox-X で起動する。A: = 起動フロッピー、B: = ホストの work/ の中身
+# 起動前に work/ → B: (push)、終了後に B: → work/ (pull) を自動で行う。DOSBox-X が異常終了しても pull する
 msdos4-run:
 	test -f build/msdos4.img || scripts/msdos4-img.sh
-	$(DOSBOX) -c "boot c:\build\msdos4.img"
+	scripts/msdos4-work.sh push
+	-$(DOSBOX) -c "imgmount 1 c:\build\work.img -t floppy -fs none" -c "boot c:\build\msdos4.img"
+	scripts/msdos4-work.sh pull
 
 # emu/src の z80em86 をビルドし、実行環境 z80em86/ の exe を置き換える
 emu:
